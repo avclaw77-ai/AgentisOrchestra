@@ -85,6 +85,19 @@ export default function SetupPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
 
+  // If setup is already done, redirect to login (handles cleared-cookie scenario)
+  useEffect(() => {
+    fetch("/api/setup")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.setupCompleted) {
+          document.cookie = "ao_setup_done=1; path=/; max-age=315360000"
+          window.location.href = "/login"
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   // Step data
   const [locale, setLocale] = useState("en")
   const [admin, setAdmin] = useState<AdminData>({ email: "", password: "", name: "" })
