@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Save, Plus, X as XIcon } from "lucide-react"
+import { X, Save, Plus, X as XIcon, Sparkles, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { AGENT_COLORS, STATUS_COLORS } from "@/lib/constants"
 import { HeartbeatConfig } from "@/components/heartbeat-config"
@@ -80,6 +81,10 @@ export function AgentProfile({
   const [budget, setBudget] = useState(config?.budget ? (config.budget / 100).toString() : "")
   const [saving, setSaving] = useState(false)
 
+  // AI configure state
+  const [aiDescription, setAiDescription] = useState("")
+  const [aiGenerating, setAiGenerating] = useState(false)
+
   // Runs state
   const [runs, setRuns] = useState<HeartbeatRun[]>([])
   const [runsLoaded, setRunsLoaded] = useState(false)
@@ -147,6 +152,35 @@ export function AgentProfile({
 
   function handleRemoveDataSource(idx: number) {
     setDataSources((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  async function handleAiGenerate() {
+    if (!aiDescription.trim()) return
+    setAiGenerating(true)
+    try {
+      const res = await fetch(`/api/agents/${agent.id}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: aiDescription.trim() }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        toast.error(err.error || "AI generation failed")
+        return
+      }
+      const data = await res.json()
+      if (data.persona) setPersona(data.persona)
+      if (data.guardrails) {
+        const rules = Array.isArray(data.guardrails) ? data.guardrails.join("\n") : data.guardrails
+        setGuardrails(rules)
+      }
+      if (data.model) setModel(data.model)
+      toast.success("Config generated -- review and save")
+    } catch {
+      toast.error("Failed to generate config")
+    } finally {
+      setAiGenerating(false)
+    }
   }
 
   async function handleSaveConfig() {
@@ -350,6 +384,44 @@ export function AgentProfile({
           {/* ============================================================= */}
           {tab === "config" && (
             <div className="space-y-5">
+              {/* AI Configure */}
+              <div className="bg-inset rounded-lg p-4 space-y-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Sparkles size={14} className="text-primary" />
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Describe what this agent should do...
+                  </span>
+                </div>
+                <textarea
+                  value={aiDescription}
+                  onChange={(e) => setAiDescription(e.target.value)}
+                  placeholder="e.g., I need an agent that monitors our production line for quality issues and alerts the team when defects spike"
+                  rows={3}
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm outline-none resize-y"
+                />
+                <button
+                  onClick={handleAiGenerate}
+                  disabled={aiGenerating || !aiDescription.trim()}
+                  className={cn(
+                    "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                    "bg-primary text-primary-foreground hover:bg-primary/90",
+                    (aiGenerating || !aiDescription.trim()) && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  {aiGenerating ? (
+                    <>
+                      <Loader2 size={12} className="animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={12} />
+                      Generate Config
+                    </>
+                  )}
+                </button>
+              </div>
+
               {/* Persona */}
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Persona / System Prompt</label>

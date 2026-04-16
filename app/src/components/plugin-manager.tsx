@@ -84,7 +84,7 @@ export function PluginManager() {
 
   const fetchPlugins = useCallback(async () => {
     try {
-      const res = await fetch("/api/bridge/plugins")
+      const res = await fetch("/api/plugins")
       if (res.ok) {
         const data = await res.json()
         setPlugins(data.plugins || [])
@@ -103,8 +103,10 @@ export function PluginManager() {
   async function handleRestart(pluginName: string) {
     setRestarting(pluginName)
     try {
-      await fetch(`/api/bridge/plugins/${encodeURIComponent(pluginName)}/restart`, {
+      await fetch("/api/plugins", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: pluginName }),
       })
       // Wait a moment for the restart to complete
       await new Promise((r) => setTimeout(r, 1500))

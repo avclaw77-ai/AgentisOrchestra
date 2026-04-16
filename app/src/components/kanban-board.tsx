@@ -15,6 +15,13 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: "text-gray-400",
 }
 
+const PRIORITY_ORDER: Record<string, number> = {
+  critical: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+}
+
 const PHASE_LABELS: Record<string, string> = {
   research: "Research",
   spec: "Spec",
@@ -42,23 +49,23 @@ function TaskCard({
     <button
       onClick={onClick}
       className={cn(
-        "w-full text-left rounded-lg border border-border bg-card p-3",
+        "w-full text-left rounded-lg border border-border bg-card px-3 py-2",
         "hover:shadow-sm transition-shadow cursor-pointer",
         "focus:outline-none focus:ring-2 focus:ring-primary/40"
       )}
     >
       <div className="flex items-start gap-2">
         <Circle
-          size={8}
-          className={cn("mt-1.5 shrink-0 fill-current", PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.medium)}
+          size={7}
+          className={cn("mt-1 shrink-0 fill-current", PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.medium)}
         />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium leading-tight truncate">
             {task.title}
           </p>
-          <div className="flex items-center gap-2 mt-1.5">
+          <div className="flex items-center gap-2 mt-1">
             {agent && (
-              <span className="text-xs text-muted-foreground truncate">
+              <span className="text-[11px] text-muted-foreground truncate">
                 {agent.name}
               </span>
             )}
@@ -67,15 +74,12 @@ function TaskCard({
                 {PHASE_LABELS[task.phase] || task.phase}
               </span>
             )}
+            {task.executionLockedAt && (
+              <Lock size={12} className="text-amber-500 shrink-0" />
+            )}
           </div>
         </div>
-        {task.executionLockedAt && (
-          <Lock size={14} className="text-amber-500 shrink-0 mt-0.5" />
-        )}
       </div>
-      <p className="text-[10px] text-muted-foreground mt-1.5 pl-4">
-        {task.id}
-      </p>
     </button>
   )
 }
@@ -101,10 +105,10 @@ function KanbanColumn({
   return (
     <div className="bg-secondary/30 rounded-xl border border-border min-h-[300px] flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <h3 className="text-sm font-medium text-foreground">{column.label}</h3>
-        <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-          {tasks.length}
-        </span>
+        <h3 className="text-sm font-medium text-foreground">
+          {column.label}{" "}
+          <span className="text-muted-foreground font-normal">({tasks.length})</span>
+        </h3>
       </div>
       <div className="flex-1 p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-260px)]">
         {tasks.length === 0 ? (
@@ -186,7 +190,9 @@ export function KanbanBoard({
       </div>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {TASK_COLUMNS.map((col) => {
-          const colTasks = tasks.filter((t) => t.status === col.key)
+          const colTasks = tasks
+            .filter((t) => t.status === col.key)
+            .sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 2) - (PRIORITY_ORDER[b.priority] ?? 2))
           return (
             <KanbanColumn
               key={col.key}

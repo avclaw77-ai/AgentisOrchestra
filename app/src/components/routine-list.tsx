@@ -18,7 +18,7 @@ import {
   Copy,
   Send,
 } from "lucide-react"
-import type { Routine, RoutineTrigger } from "@/types"
+import type { Routine, RoutineTrigger, RoutineRun } from "@/types"
 
 // =============================================================================
 // Types
@@ -98,6 +98,31 @@ export function RoutineList({
   onDelete,
 }: RoutineListProps) {
   const [expandedWebhook, setExpandedWebhook] = useState<string | null>(null)
+  const [expandedRuns, setExpandedRuns] = useState<string | null>(null)
+  const [runHistory, setRunHistory] = useState<Record<string, RoutineRun[]>>({})
+  const [loadingRuns, setLoadingRuns] = useState<string | null>(null)
+  const [expandedRunId, setExpandedRunId] = useState<string | null>(null)
+
+  async function toggleRunHistory(routineId: string) {
+    if (expandedRuns === routineId) {
+      setExpandedRuns(null)
+      return
+    }
+    setExpandedRuns(routineId)
+    if (runHistory[routineId]) return
+    setLoadingRuns(routineId)
+    try {
+      const res = await fetch(`/api/routines/${routineId}/runs?limit=10`)
+      if (res.ok) {
+        const data = await res.json()
+        setRunHistory((prev) => ({ ...prev, [routineId]: data }))
+      }
+    } catch {
+      // runs not available yet
+    } finally {
+      setLoadingRuns(null)
+    }
+  }
   if (routines.length === 0) {
     return (
       <div className="text-center py-16">
@@ -242,6 +267,112 @@ export function RoutineList({
                     <ChevronRight size={14} className="text-muted-foreground ml-1" />
                   </div>
                 </div>
+              </div>
+
+              {/* Run history section */}
+              <div className="border-t border-border">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleRunHistory(routine.id)
+                  }}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+                >
+                  <Clock size={12} />
+                  <span>Run History</span>
+                  {expandedRuns === routine.id ? (
+                    <ChevronDown size={12} className="ml-auto" />
+                  ) : (
+                    <ChevronRight size={12} className="ml-auto" />
+                  )}
+                </button>
+                {expandedRuns === routine.id && (
+                  <div className="px-4 pb-3">
+                    {loadingRuns === routine.id ? (
+                      <p className="text-xs text-muted-foreground py-2">Loading runs...</p>
+                    ) : !runHistory[routine.id] || runHistory[routine.id].length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-2">No runs yet</p>
+                    ) : (
+                      <>
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="text-left text-muted-foreground border-b border-border">
+                              <th className="pb-1.5 font-medium">Status</th>
+                              <th className="pb-1.5 font-medium">Trigger</th>
+                              <th className="pb-1.5 font-medium">Started</th>
+                              <th className="pb-1.5 font-medium text-right">Duration</th>
+                              <th className="pb-1.5 font-medium text-right">Tokens</th>
+                              <th className="pb-1.5 font-medium text-right">Cost</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {runHistory[routine.id].map((run) => {
+                              const statusBadge: Record<string, { bg: string; text: string }> = {
+                                completed: { bg: "bg-emerald-50", text: "text-emerald-700" },
+                                running: { bg: "bg-amber-50", text: "text-amber-700" },
+                                failed: { bg: "bg-red-50", text: "text-red-700" },
+                                queued: { bg: "bg-gray-50", text: "text-gray-600" },
+                                cancelled: { bg: "bg-gray-50", text: "text-gray-500" },
+                                timed_out: { bg: "bg-red-50", text: "text-red-600" },
+                              }
+                              const badge = statusBadge[run.status] || statusBadge.queued
+                              const durationMs = run.startedAt && run.completedAt
+                                ? new Date(run.completedAt).getTime() - new Date(run.startedAt).getTime()
+                                : null
+                              const isSelected = expandedRunId === run.id
+
+                              return (
+                                <tr
+                                  key={run.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setExpandedRunId(isSelected ? null : run.id)
+                                  }}
+                                  className="border-b border-border/50 hover:bg-secondary/30 cursor-pointer transition-colors"
+                                >
+                                  <td className="py-1.5">
+                                    <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", badge.bg, badge.text)}>
+                                      {run.status}
+                                    </span>
+                                  </td>
+                                  <td className="py-1.5">
+                                    <span className="flex items-center gap-1">
+                                      {getTriggerIcon(run.triggerType)}
+                                      {run.triggerType}
+                                    </span>
+                                  </td>
+                                  <td className="py-1.5">
+                                    {run.startedAt ? formatTimeAgo(run.startedAt) : "-"}
+                                  </td>
+                                  <td className="py-1.5 text-right tabular-nums">
+                                    {durationMs != null ? (durationMs < 1000 ? `${durationMs}ms` : `${(durationMs / 1000).toFixed(1)}s`) : "-"}
+                                  </td>
+                                  <td className="py-1.5 text-right tabular-nums">
+                                    {run.totalTokens > 0 ? (run.totalTokens >= 1000 ? `${(run.totalTokens / 1000).toFixed(1)}K` : run.totalTokens) : "-"}
+                                  </td>
+                                  <td className="py-1.5 text-right tabular-nums">
+                                    {run.totalCostCents > 0 ? (run.totalCostCents >= 100 ? `$${(run.totalCostCents / 100).toFixed(2)}` : `${run.totalCostCents}c`) : "-"}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                        {(runHistory[routine.id].length >= 10) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onSelect(routine.id)
+                            }}
+                            className="text-[10px] text-primary font-medium mt-2 hover:underline"
+                          >
+                            View all runs
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Webhook test section */}

@@ -18,6 +18,7 @@ import { GoalTree } from "@/components/goal-tree"
 import { ApprovalFeed } from "@/components/approval-feed"
 import { SkillLibrary } from "@/components/skill-library"
 import { DecisionLog } from "@/components/decision-log"
+import { ActivityLog } from "@/components/activity-log"
 import type {
   Agent,
   AgentConfig,
@@ -78,7 +79,33 @@ export default function DashboardPage() {
   const [agentConfig, setAgentConfig] = useState<AgentConfig | null>(null)
 
   // Settings sub-tab
-  const [settingsTab, setSettingsTab] = useState<"general" | "approvals" | "skills" | "decisions" | "export">("general")
+  const [settingsTab, setSettingsTab] = useState<"general" | "approvals" | "skills" | "decisions" | "activity" | "export">("general")
+
+  // Company general form state
+  const [companyName, setCompanyName] = useState("")
+  const [companyMission, setCompanyMission] = useState("")
+  const [companyLocale, setCompanyLocale] = useState("en")
+  const [companySaving, setCompanySaving] = useState(false)
+  const [companyLoaded, setCompanyLoaded] = useState(false)
+
+  // Export template metadata
+  const [exportTemplateName, setExportTemplateName] = useState("")
+  const [exportTemplateDesc, setExportTemplateDesc] = useState("")
+  const [exportIndustryTag, setExportIndustryTag] = useState("Technology")
+  const [exportAuthor, setExportAuthor] = useState("AgentisLab")
+
+  // Import preview state
+  const [importPreview, setImportPreview] = useState<{
+    templateName?: string
+    templateDescription?: string
+    author?: string
+    industryTag?: string
+    company?: { name: string }
+    departments?: unknown[]
+    skills?: unknown[]
+    routines?: unknown[]
+  } | null>(null)
+  const [importFile, setImportFile] = useState<File | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -151,6 +178,53 @@ export default function DashboardPage() {
       }
     } catch {
       // Will work once DB is populated via setup wizard
+    }
+  }
+
+  // Fetch company details for settings general tab
+  const fetchCompany = useCallback(async () => {
+    if (companyLoaded) return
+    try {
+      const res = await fetch("/api/company")
+      if (res.ok) {
+        const data = await res.json()
+        setCompanyName(data.name || "")
+        setCompanyMission(data.mission || "")
+        setCompanyLocale(data.locale || "en")
+        setExportTemplateName(data.name || "")
+        setCompanyLoaded(true)
+      }
+    } catch {
+      // Will work once company exists
+    }
+  }, [companyLoaded])
+
+  useEffect(() => {
+    if (view === "settings" && settingsTab === "general") {
+      fetchCompany()
+    }
+  }, [view, settingsTab, fetchCompany])
+
+  async function handleSaveCompany() {
+    setCompanySaving(true)
+    try {
+      const res = await fetch("/api/company", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: companyName,
+          mission: companyMission || null,
+          locale: companyLocale,
+        }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Company settings saved")
+      // Update local company info
+      setCompanyInfo({ name: companyName, locale: companyLocale })
+    } catch {
+      toast.error("Failed to save company settings")
+    } finally {
+      setCompanySaving(false)
     }
   }
 
@@ -648,11 +722,19 @@ export default function DashboardPage() {
       const res = await fetch("/api/company/export")
       if (!res.ok) throw new Error()
       const data = await res.json()
+      // Add template metadata
+      data.templateName = exportTemplateName || companyInfo.name
+      data.templateDescription = exportTemplateDesc || ""
+      data.author = exportAuthor || "AgentisLab"
+      data.industryTag = exportIndustryTag || "Technology"
+      data.agentCount = (data.departments || []).reduce((sum: number, d: { agents?: unknown[] }) => sum + (d.agents?.length || 0), 0)
+      data.departmentCount = (data.departments || []).length
+      data.createdAt = new Date().toISOString()
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `company-template-${Date.now()}.json`
+      a.download = `${(exportTemplateName || companyInfo.name).toLowerCase().replace(/\s+/g, "-")}-template.json`
       a.click()
       URL.revokeObjectURL(url)
       toast.success("Company config exported")
@@ -661,9 +743,23 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleImport(file: File) {
+  function handleImportPreview(file: File) {
+    setImportFile(file)
+    file.text().then((text) => {
+      try {
+        const parsed = JSON.parse(text)
+        setImportPreview(parsed)
+      } catch {
+        toast.error("Invalid JSON file")
+        setImportFile(null)
+      }
+    })
+  }
+
+  async function handleImportConfirm() {
+    if (!importFile) return
     try {
-      const text = await file.text()
+      const text = await importFile.text()
       const template = JSON.parse(text)
       const res = await fetch("/api/company/import", {
         method: "POST",
@@ -672,6 +768,8 @@ export default function DashboardPage() {
       })
       if (!res.ok) throw new Error()
       toast.success("Template imported")
+      setImportPreview(null)
+      setImportFile(null)
       await fetchData()
     } catch {
       toast.error("Import failed")
@@ -843,6 +941,7 @@ export default function DashboardPage() {
             {(
               [
                 { key: "general", label: "General" },
+                { key: "activity", label: "Activity" },
                 { key: "decisions", label: "Decisions" },
                 { key: "approvals", label: "Approvals" },
                 { key: "skills", label: "Skills" },
@@ -869,21 +968,46 @@ export default function DashboardPage() {
                 <label className="text-sm font-medium">Company Name</label>
                 <input
                   type="text"
-                  defaultValue={companyInfo.name}
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
                   className="mt-1 w-full bg-inset rounded-lg px-3 py-2 text-sm outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Mission</label>
+                <textarea
+                  value={companyMission}
+                  onChange={(e) => setCompanyMission(e.target.value)}
+                  placeholder="Your company mission statement..."
+                  rows={3}
+                  className="mt-1 w-full bg-inset rounded-lg px-3 py-2 text-sm outline-none resize-y"
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">Language</label>
                 <select
-                  defaultValue={companyInfo.locale}
+                  value={companyLocale}
+                  onChange={(e) => setCompanyLocale(e.target.value)}
                   className="mt-1 w-full bg-inset rounded-lg px-3 py-2 text-sm outline-none"
                 >
                   <option value="en">English</option>
                   <option value="fr">Francais</option>
                 </select>
               </div>
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={handleSaveCompany}
+                  disabled={companySaving}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                >
+                  {companySaving ? "Saving..." : "Save"}
+                </button>
+              </div>
             </div>
+          )}
+
+          {settingsTab === "activity" && (
+            <ActivityLog departmentId={selectedDepartment} />
           )}
 
           {settingsTab === "decisions" && (
@@ -920,6 +1044,52 @@ export default function DashboardPage() {
                   Download a JSON template of your company configuration including departments, agents, goals, skills, and routines.
                   Excludes user data, chat history, cost events, and secrets.
                 </p>
+                <div className="space-y-3 mb-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Template Name</label>
+                    <input
+                      type="text"
+                      value={exportTemplateName}
+                      onChange={(e) => setExportTemplateName(e.target.value)}
+                      placeholder={companyInfo.name}
+                      className="mt-1 w-full bg-inset rounded-lg px-3 py-2 text-sm outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Description</label>
+                    <input
+                      type="text"
+                      value={exportTemplateDesc}
+                      onChange={(e) => setExportTemplateDesc(e.target.value)}
+                      placeholder="One-line description of this template..."
+                      className="mt-1 w-full bg-inset rounded-lg px-3 py-2 text-sm outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Industry</label>
+                      <select
+                        value={exportIndustryTag}
+                        onChange={(e) => setExportIndustryTag(e.target.value)}
+                        className="mt-1 w-full bg-inset rounded-lg px-3 py-2 text-sm outline-none"
+                      >
+                        {["Technology", "Manufacturing", "Insurance", "Finance", "Healthcare", "Retail", "Education", "Consulting", "Real Estate", "Logistics", "Other"].map((ind) => (
+                          <option key={ind} value={ind}>{ind}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Author</label>
+                      <input
+                        type="text"
+                        value={exportAuthor}
+                        onChange={(e) => setExportAuthor(e.target.value)}
+                        placeholder="AgentisLab"
+                        className="mt-1 w-full bg-inset rounded-lg px-3 py-2 text-sm outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
                 <button
                   onClick={handleExport}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
@@ -934,19 +1104,67 @@ export default function DashboardPage() {
                   Upload a JSON template to create departments, agents, goals, skills, and routines.
                   Items that already exist (by id/key) will be skipped.
                 </p>
-                <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-secondary transition-colors cursor-pointer">
-                  Choose File
-                  <input
-                    type="file"
-                    accept=".json"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleImport(file)
-                      e.target.value = ""
-                    }}
-                  />
-                </label>
+
+                {importPreview ? (
+                  <div className="space-y-4">
+                    <div className="bg-inset rounded-lg p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold">
+                          {importPreview.templateName || importPreview.company?.name || "Unnamed Template"}
+                        </h4>
+                        {importPreview.industryTag && (
+                          <span className="text-[10px] font-medium bg-secondary px-2 py-0.5 rounded-full">
+                            {importPreview.industryTag}
+                          </span>
+                        )}
+                      </div>
+                      {importPreview.templateDescription && (
+                        <p className="text-xs text-muted-foreground">{importPreview.templateDescription}</p>
+                      )}
+                      {importPreview.author && (
+                        <p className="text-[10px] text-muted-foreground">By {importPreview.author}</p>
+                      )}
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
+                        <span>{importPreview.departments?.length || 0} departments</span>
+                        <span>
+                          {(importPreview.departments as Array<{ agents?: unknown[] }>)?.reduce(
+                            (sum: number, d: { agents?: unknown[] }) => sum + (d.agents?.length || 0), 0
+                          ) || 0} agents
+                        </span>
+                        <span>{importPreview.routines?.length || 0} routines</span>
+                        <span>{importPreview.skills?.length || 0} skills</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleImportConfirm}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                      >
+                        Import
+                      </button>
+                      <button
+                        onClick={() => { setImportPreview(null); setImportFile(null) }}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-secondary transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-secondary transition-colors cursor-pointer">
+                    Choose File
+                    <input
+                      type="file"
+                      accept=".json"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleImportPreview(file)
+                        e.target.value = ""
+                      }}
+                    />
+                  </label>
+                )}
               </div>
             </div>
           )}
