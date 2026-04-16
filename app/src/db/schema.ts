@@ -129,9 +129,28 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   name: text("name").notNull(),
-  role: text("role").notNull().default("admin"), // admin | viewer
+  role: text("role").notNull().default("admin"), // admin | member | viewer
+  departmentId: text("department_id").references(() => departments.id, { onDelete: "set null" }), // primary department
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
+
+export const userDepartments = pgTable(
+  "user_departments",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    departmentId: text("department_id")
+      .notNull()
+      .references(() => departments.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("user_departments_unique_idx").on(t.userId, t.departmentId),
+    index("user_departments_user_idx").on(t.userId),
+  ]
+)
 
 export const sessions = pgTable(
   "sessions",
