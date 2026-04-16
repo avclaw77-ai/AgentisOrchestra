@@ -11,6 +11,8 @@ import { ProvidersStep } from "@/components/setup/providers-step"
 import { DepartmentStep } from "@/components/setup/department-step"
 import { AgentsStep } from "@/components/setup/agents-step"
 import { ReadyStep } from "@/components/setup/ready-step"
+import { WorkshopImportStep } from "@/components/setup/workshop-import-step"
+import { workshopToSetupPayload } from "@/lib/workshop-import"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -73,7 +75,7 @@ const INITIAL_PROVIDERS: ProviderStatus[] = [
   { provider: "openai", name: "OpenAI", description: "GPT-4o, o3 -- structured output and reasoning", color: "#10b981", apiKey: "", isValid: null, testing: false },
 ]
 
-const STEPS = ["Welcome", "Admin", "Company", "Providers", "Department", "Agents", "Ready"]
+const STEPS = ["Welcome", "Admin", "Company", "Workshop", "Providers", "Department", "Agents", "Ready"]
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -101,18 +103,42 @@ export default function SetupPage() {
       case 0: return true // welcome
       case 1: return !!admin.email && !!admin.password && admin.password.length >= 8 && !!admin.name
       case 2: return !!companyData.name.trim()
-      case 3: return providers.some((p) => p.isValid === true)
-      case 4: return !!currentDept.name.trim()
-      case 5: return currentAgents.length > 0
-      case 6: return true
+      case 3: return true // workshop import (always skippable)
+      case 4: return providers.some((p) => p.isValid === true)
+      case 5: return !!currentDept.name.trim()
+      case 6: return currentAgents.length > 0
+      case 7: return true
       default: return false
     }
   }
 
+  // Workshop import handler -- pre-fills departments, goals, routines
+  function handleWorkshopImport(payload: ReturnType<typeof workshopToSetupPayload>) {
+    // Set company info from workshop
+    if (payload.company.name) {
+      setCompanyData((prev) => ({
+        ...prev,
+        name: payload.company.name || prev.name,
+        mission: payload.company.mission || prev.mission,
+      }))
+    }
+    // Set departments with agents
+    const depts: DepartmentSetup[] = payload.departments.map((d) => ({
+      id: d.id,
+      name: d.name,
+      description: d.description,
+      color: d.color,
+      template: d.template,
+      agents: d.agents.map((a) => ({ id: a.id, name: a.name, role: a.role, model: a.model })),
+    }))
+    setDepartments(depts)
+    // Skip to providers step (step 4) -- departments are pre-filled
+    setStep(4)
+  }
+
   function handleNext() {
     if (step === 2 && proposal) {
-      // If we have a proposal from AI analysis, auto-populate departments
-      // and skip to the ready step (user can still go back and edit)
+      // AI analysis auto-populates departments
       const proposedDepts: DepartmentSetup[] = proposal.departments.map((d) => ({
         id: d.id,
         name: d.name,
@@ -122,9 +148,8 @@ export default function SetupPage() {
         agents: d.agents.map((a) => ({ id: a.id, name: a.name, role: a.role, model: a.model })),
       }))
       setDepartments(proposedDepts)
-      // Skip to step 3 (providers) -- departments are pre-filled, user reviews at step 6
     }
-    if (step === 4) {
+    if (step === 5) {
       // When leaving department step, load template agents if applicable
       if (currentDept.template) {
         const tpl = getTemplate(currentDept.template)
@@ -135,7 +160,7 @@ export default function SetupPage() {
         }
       }
     }
-    if (step === 5) {
+    if (step === 6) {
       // Save current department + agents
       const dept: DepartmentSetup = { ...currentDept, agents: currentAgents }
       setDepartments((prev) => [...prev, dept])
@@ -147,13 +172,13 @@ export default function SetupPage() {
   }
 
   function handleBack() {
-    if (step === 6 && departments.length > 0) {
+    if (step === 7 && departments.length > 0) {
       // Going back from ready -- pop last department back into editing
       const last = departments[departments.length - 1]
       setDepartments((prev) => prev.slice(0, -1))
       setCurrentDept({ id: last.id, name: last.name, description: last.description, color: last.color, template: last.template, agents: [] })
       setCurrentAgents(last.agents)
-      setStep(5) // go to agents step
+      setStep(6) // go to agents step
       return
     }
     setStep((s) => Math.max(s - 1, 0))
@@ -163,7 +188,7 @@ export default function SetupPage() {
     // Go back to department step to add another
     setCurrentDept({ id: "", name: "", description: "", color: "#3b82f6", template: null, agents: [] })
     setCurrentAgents([])
-    setStep(4)
+    setStep(5)
   }
 
   // ─── Provider testing ──────────────────────────────────────────────────────
@@ -288,20 +313,26 @@ export default function SetupPage() {
           />
         )}
         {step === 3 && (
+          <WorkshopImportStep
+            onImport={handleWorkshopImport}
+            onSkip={() => setStep(4)}
+          />
+        )}
+        {step === 4 && (
           <ProvidersStep
             providers={providers}
             onTestProvider={handleTestProvider}
             onKeyChange={handleKeyChange}
           />
         )}
-        {step === 4 && (
+        {step === 5 && (
           <DepartmentStep
             department={currentDept}
             templates={Object.entries(DEPARTMENT_TEMPLATES).map(([key, t]) => ({ key, ...t }))}
             onChange={(d) => setCurrentDept(d)}
           />
         )}
-        {step === 5 && (
+        {step === 6 && (
           <AgentsStep
             departmentName={currentDept.name}
             agents={currentAgents}
@@ -313,7 +344,7 @@ export default function SetupPage() {
             }
           />
         )}
-        {step === 6 && (
+        {step === 7 && (
           <ReadyStep
             companyName={companyData.name}
             departments={departments}
