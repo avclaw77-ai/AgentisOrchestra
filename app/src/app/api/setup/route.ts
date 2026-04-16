@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
             id: agentId,
             departmentId: deptId,
             name: agent.name.trim(),
-            displayName: (agent as Record<string, unknown>).displayName as string || null,
+            displayName: agent.displayName || null,
             role: agent.role.trim(),
             status: "idle",
             isCeo: false,
