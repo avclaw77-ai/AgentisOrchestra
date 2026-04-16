@@ -23,10 +23,17 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 bridge && \
     adduser --system --uid 1001 bridge
 
+# Install Claude CLI globally for CLI adapter mode
+RUN npm install -g @anthropic-ai/claude-code 2>/dev/null || true
+
 COPY --from=builder --chown=bridge:bridge /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 
+# Create writable home for bridge user (CLI needs to write temp files)
+RUN mkdir -p /home/bridge && chown bridge:bridge /home/bridge
+
 USER bridge
+ENV HOME=/home/bridge
 EXPOSE 3847
 CMD ["node", "dist/server.js"]
