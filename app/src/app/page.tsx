@@ -1,18 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Shell, type View } from "@/components/shell"
 import { AgentRoster } from "@/components/agent-roster"
 import { ChatPanel } from "@/components/chat-panel"
-import { TaskBoard } from "@/components/task-board"
+import { KanbanBoard } from "@/components/kanban-board"
+import { TaskDetail } from "@/components/task-detail"
+import { CreateTaskDialog } from "@/components/create-task-dialog"
 import { ModelConfig } from "@/components/model-config"
-import type { Agent } from "@/types"
-
-interface Department {
-  id: string
-  name: string
-  color: string
-}
+import type { Agent, Task, TaskComment, TaskStatus, Department } from "@/types"
 
 interface CompanyInfo {
   name: string
@@ -27,9 +23,59 @@ export default function DashboardPage() {
   const [departments, setDepartments] = useState<Department[]>([])
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ name: "AgentisOrchestra", locale: "en" })
 
+  // Task state
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [taskComments, setTaskComments] = useState<TaskComment[]>([])
+  const [showCreateTask, setShowCreateTask] = useState(false)
+
   useEffect(() => {
     fetchData()
   }, [])
+
+  // Fetch tasks when department changes or view switches to tasks
+  const fetchTasks = useCallback(async () => {
+    try {
+      const params = new URLSearchParams()
+      if (selectedDepartment) params.set("departmentId", selectedDepartment)
+      const res = await fetch(`/api/tasks?${params}`)
+      if (res.ok) {
+        setTasks(await res.json())
+      }
+    } catch {
+      // Tasks will load once DB is ready
+    }
+  }, [selectedDepartment])
+
+  useEffect(() => {
+    if (view === "tasks") {
+      fetchTasks()
+    }
+  }, [view, selectedDepartment, fetchTasks])
+
+  // Fetch single task detail + comments
+  useEffect(() => {
+    if (!selectedTaskId) {
+      setSelectedTask(null)
+      setTaskComments([])
+      return
+    }
+    async function loadDetail() {
+      try {
+        const res = await fetch(`/api/tasks/${selectedTaskId}`)
+        if (res.ok) {
+          const data = await res.json()
+          const { comments, ...task } = data
+          setSelectedTask(task)
+          setTaskComments(comments || [])
+        }
+      } catch {
+        // Will work once task exists
+      }
+    }
+    loadDetail()
+  }, [selectedTaskId])
 
   async function fetchData() {
     try {
@@ -56,6 +102,69 @@ export default function DashboardPage() {
     } catch {
       // Will work once DB is populated via setup wizard
     }
+  }
+
+  async function handleStatusChange(taskId: string, newStatus: TaskStatus) {
+    await fetch("/api/tasks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: taskId, status: newStatus }),
+    })
+    await fetchTasks()
+    // Refresh detail if open
+    if (selectedTaskId === taskId) {
+      const res = await fetch(`/api/tasks/${taskId}`)
+      if (res.ok) {
+        const data = await res.json()
+        const { comments, ...task } = data
+        setSelectedTask(task)
+        setTaskComments(comments || [])
+      }
+    }
+  }
+
+  async function handleCreateTask(payload: {
+    title: string
+    departmentId: string | null
+    assignedTo: string | null
+    priority: string
+    phase: string | null
+    notes: string
+  }) {
+    await fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+    setShowCreateTask(false)
+    await fetchTasks()
+  }
+
+  async function handleAddComment(body: string) {
+    if (!selectedTaskId) return
+    await fetch(`/api/tasks/${selectedTaskId}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body, authorUserId: "admin" }),
+    })
+    // Refresh comments
+    const res = await fetch(`/api/tasks/${selectedTaskId}`)
+    if (res.ok) {
+      const data = await res.json()
+      const { comments, ...task } = data
+      setSelectedTask(task)
+      setTaskComments(comments || [])
+    }
+  }
+
+  async function handleNotesChange(notes: string) {
+    if (!selectedTaskId) return
+    await fetch(`/api/tasks/${selectedTaskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes }),
+    })
+    await fetchTasks()
   }
 
   const visibleAgents = selectedDepartment
@@ -114,7 +223,41 @@ export default function DashboardPage() {
 
       {view === "tasks" && (
         <div className="p-6">
-          <TaskBoard />
+          <KanbanBoard
+            tasks={tasks}
+            agents={agents}
+            departmentId={selectedDepartment}
+            departments={departments}
+            onStatusChange={handleStatusChange}
+            onSelectTask={setSelectedTaskId}
+            onCreateTask={() => setShowCreateTask(true)}
+          />
+
+          {/* Task detail slide-over */}
+          {selectedTask && (
+            <TaskDetail
+              task={selectedTask}
+              comments={taskComments}
+              agents={agents}
+              onClose={() => setSelectedTaskId(null)}
+              onStatusChange={(status) =>
+                handleStatusChange(selectedTask.id, status)
+              }
+              onAddComment={handleAddComment}
+              onNotesChange={handleNotesChange}
+            />
+          )}
+
+          {/* Create task dialog */}
+          {showCreateTask && (
+            <CreateTaskDialog
+              agents={agents}
+              departments={departments}
+              currentDepartment={selectedDepartment}
+              onClose={() => setShowCreateTask(false)}
+              onCreate={handleCreateTask}
+            />
+          )}
         </div>
       )}
 

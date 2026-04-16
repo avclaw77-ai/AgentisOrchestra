@@ -6,6 +6,7 @@ import {
   timestamp,
   jsonb,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core"
 
 // =============================================================================
@@ -207,7 +208,7 @@ export const projects = pgTable("projects", {
 export const tasks = pgTable(
   "tasks",
   {
-    id: text("id").primaryKey(), // "task-001"
+    id: text("id").primaryKey(), // "TASK-001"
     departmentId: text("department_id").references(() => departments.id, {
       onDelete: "cascade",
     }), // NULL = company-wide CEO task
@@ -219,6 +220,12 @@ export const tasks = pgTable(
     priority: text("priority").default("medium"), // low | medium | high | critical
     dependencies: text("dependencies").array(),
     notes: text("notes"),
+    executionLockedAt: timestamp("execution_locked_at"), // atomic checkout
+    checkoutRunId: text("checkout_run_id"), // which heartbeat run owns this task
+    parentTaskId: text("parent_task_id"), // references tasks(id), set null on delete handled at app level
+    phase: text("phase"), // research | spec | design | build | qa | deploy
+    estimatedTokens: integer("estimated_tokens"),
+    actualTokens: integer("actual_tokens").default(0),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -227,6 +234,63 @@ export const tasks = pgTable(
     index("tasks_status_idx").on(t.status),
     index("tasks_project_idx").on(t.project),
   ]
+)
+
+// =============================================================================
+// TASK COMMENTS -- Discussion on tasks
+// =============================================================================
+
+export const taskComments = pgTable(
+  "task_comments",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    taskId: text("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    departmentId: text("department_id").references(() => departments.id, {
+      onDelete: "set null",
+    }),
+    authorAgentId: text("author_agent_id"),
+    authorUserId: text("author_user_id"),
+    body: text("body").notNull(),
+    runId: text("run_id").references(() => heartbeatRuns.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("task_comments_task_created_idx").on(t.taskId, t.createdAt)]
+)
+
+// =============================================================================
+// LABELS -- Task categorization
+// =============================================================================
+
+export const labels = pgTable(
+  "labels",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    departmentId: text("department_id").references(() => departments.id, {
+      onDelete: "cascade",
+    }),
+    name: text("name").notNull(),
+    color: text("color").default("#6b7280"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("labels_dept_name_idx").on(t.departmentId, t.name)]
+)
+
+export const taskLabels = pgTable(
+  "task_labels",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    taskId: text("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    labelId: integer("label_id")
+      .notNull()
+      .references(() => labels.id, { onDelete: "cascade" }),
+  },
+  (t) => [uniqueIndex("task_labels_unique_idx").on(t.taskId, t.labelId)]
 )
 
 // =============================================================================

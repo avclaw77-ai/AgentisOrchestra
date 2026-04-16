@@ -147,6 +147,8 @@ export interface Skill {
 // Tasks
 // =============================================================================
 
+export type TaskPhase = 'research' | 'spec' | 'design' | 'build' | 'qa' | 'deploy'
+
 export interface Task {
   id: string
   departmentId: string | null
@@ -156,8 +158,32 @@ export interface Task {
   project: string | null
   priority: string
   notes: string | null
+  executionLockedAt: string | null
+  checkoutRunId: string | null
+  parentTaskId: string | null
+  phase: string | null
+  estimatedTokens: number | null
+  actualTokens: number
   createdAt: string
   updatedAt: string
+}
+
+export interface TaskComment {
+  id: number
+  taskId: string
+  departmentId: string | null
+  authorAgentId: string | null
+  authorUserId: string | null
+  body: string
+  runId: string | null
+  createdAt: string
+}
+
+export interface Label {
+  id: number
+  departmentId: string | null
+  name: string
+  color: string
 }
 
 // =============================================================================
