@@ -36,13 +36,15 @@ export async function executeCLI(
 ): Promise<void> {
   const cliPath = process.env.CLAUDE_CLI_PATH || "/usr/local/bin/claude"
 
-  // Spawn: /usr/bin/env -i <cli> --output-format stream-json -p "message"
+  // Spawn claude with --print - (stdin prompt) + stream-json output
+  // Mirrors Paperclip's approach: full process.env, stdin pipe for prompt
   const { spawn } = await import("node:child_process")
 
   const args = [
+    "--print", "-",
     "--output-format", "stream-json",
+    "--verbose",
     "--model", req.model,
-    "-p", req.message,
   ]
 
   if (req.systemPrompt) {
@@ -51,13 +53,13 @@ export async function executeCLI(
 
   return new Promise((resolve, reject) => {
     const proc = spawn(cliPath, args, {
-      env: {
-        PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
-        HOME: process.env.HOME || "/root",
-        CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR || "",
-      },
-      stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env },
+      stdio: ["pipe", "pipe", "pipe"],
     })
+
+    // Write prompt to stdin then close
+    proc.stdin.write(req.message)
+    proc.stdin.end()
 
     let fullResult = ""
 
