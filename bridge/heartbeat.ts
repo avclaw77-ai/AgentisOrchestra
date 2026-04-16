@@ -85,7 +85,7 @@ class HeartbeatEngine {
     this.tickInProgress = true
     try {
       // 1. Get all pending wakeup requests
-      const wakeups = (await db.getPendingWakeups()) as WakeupRecord[]
+      const wakeups = (await db.getPendingWakeups()) as unknown as WakeupRecord[]
       if (wakeups.length === 0) return
 
       for (const wakeup of wakeups) {

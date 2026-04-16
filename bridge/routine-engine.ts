@@ -88,7 +88,7 @@ class RoutineEngine {
     await db.updateRoutineLastTriggered(routineId)
 
     // Get steps ordered by step_order
-    const steps = await db.getRoutineSteps(routineId) as RoutineStepRow[]
+    const steps = await db.getRoutineSteps(routineId) as unknown as RoutineStepRow[]
     if (steps.length === 0) {
       await db.finalizeRoutineRun(runId, { status: "completed" })
       return runId
@@ -98,7 +98,7 @@ class RoutineEngine {
     await db.updateRoutineRunStatus(runId, "running")
 
     // Execute steps in background
-    this.executeSteps(runId, routine as RoutineRow, steps).catch((err) => {
+    this.executeSteps(runId, routine as unknown as RoutineRow, steps).catch((err) => {
       console.error(`[routine] Run ${runId} failed:`, err)
     })
 
