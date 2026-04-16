@@ -20,7 +20,7 @@ The simplest path. Everything runs in containers.
 
 ```bash
 # 1. Clone
-git clone https://github.com/AgentisLab/agentis-orchestra.git
+git clone https://github.com/avclaw77-ai/AgentisOrchestra.git
 cd agentis-orchestra
 
 # 2. Generate secrets
@@ -168,7 +168,7 @@ docker compose version
 ```bash
 cd /opt
 sudo mkdir agentis-orchestra && sudo chown orchestra:orchestra agentis-orchestra
-git clone https://github.com/AgentisLab/agentis-orchestra.git agentis-orchestra
+git clone https://github.com/avclaw77-ai/AgentisOrchestra.git agentis-orchestra
 cd agentis-orchestra
 
 # Generate secrets
@@ -223,6 +223,118 @@ curl -I https://orchestra.yourcompany.com
 ```
 
 Open `https://orchestra.yourcompany.com` -- you'll see the setup wizard.
+
+### CLI Mode: Bridge on Host (recommended for Claude Pro)
+
+When using Claude Code CLI with a Pro subscription, the bridge must run on the host (not in Docker) because the CLI's OAuth credentials are tied to the host's HOME directory.
+
+**Architecture:**
+```
+Docker: db (PostgreSQL) + app (Next.js)
+Host:   bridge (systemd) + Claude CLI
+```
+
+**Step A: Install and authenticate Claude CLI**
+
+```bash
+# Install
+npm install -g @anthropic-ai/claude-code
+
+# Authenticate (opens browser OAuth)
+claude auth login
+
+# Verify
+claude -p "say hello" --output-format json
+```
+
+**Step B: Install bridge on host**
+
+```bash
+cd /opt/agentis-orchestra/bridge
+pnpm install && pnpm build
+```
+
+**Step C: Create systemd service**
+
+```bash
+cat > /etc/systemd/system/orchestra-bridge.service << 'UNIT'
+[Unit]
+Description=AgentisOrchestra Bridge
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=orchestra
+Group=orchestra
+WorkingDirectory=/opt/agentis-orchestra/bridge
+ExecStart=/usr/bin/node dist/server.js
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=PORT=3847
+Environment=MCP_PORT=3848
+Environment=DATABASE_URL=postgres://agentis:YOUR_DB_PASSWORD@127.0.0.1:5432/agentis_orchestra
+Environment=BRIDGE_TOKEN=YOUR_BRIDGE_TOKEN
+Environment=CLAUDE_CLI_PATH=/usr/bin/claude
+Environment=ADAPTER_MODE=cli
+Environment=HOME=/home/orchestra
+Environment=APP_URL=http://localhost:3000
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=orchestra-bridge
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable orchestra-bridge
+systemctl start orchestra-bridge
+```
+
+**Step D: Update Docker app to reach host bridge**
+
+Create `docker-compose.override.yml`:
+```yaml
+services:
+  bridge:
+    entrypoint: ["sleep", "infinity"]
+    restart: "no"
+    ports: !override []
+    healthcheck:
+      test: ["CMD-SHELL", "true"]
+      interval: 5s
+      retries: 1
+
+  app:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      BRIDGE_URL: http://host.docker.internal:3847
+```
+
+Then allow Docker container traffic to the bridge port:
+```bash
+ufw allow from 172.16.0.0/12 to any port 3847
+ufw allow from 172.16.0.0/12 to any port 3848
+# Also add iptables rules for the specific Docker network subnet
+iptables -I INPUT -s 172.18.0.0/16 -p tcp --dport 3847 -j ACCEPT
+```
+
+**Step E: Verify**
+```bash
+# Bridge health
+curl -s -H "Authorization: Bearer $BRIDGE_TOKEN" http://localhost:3847/health
+
+# App sees bridge
+curl -s http://localhost:3000/api/health
+# Should show: {"status":"ok","bridge":"ok"}
+
+# Bridge management
+systemctl status orchestra-bridge   # Status
+journalctl -u orchestra-bridge -f   # Live logs
+systemctl restart orchestra-bridge  # Restart
+```
 
 ### Step 5: Complete setup wizard
 
