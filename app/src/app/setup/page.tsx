@@ -300,8 +300,8 @@ export default function SetupPage() {
             })),
           })),
           providers: providers
-            .filter((p) => p.apiKey && p.isValid)
-            .map((p) => ({ provider: p.provider, apiKey: p.apiKey })),
+            .filter((p) => p.isValid && (p.apiKey || p.provider === "claude-cli"))
+            .map((p) => ({ provider: p.provider, apiKey: p.apiKey || "" })),
         }),
       })
 

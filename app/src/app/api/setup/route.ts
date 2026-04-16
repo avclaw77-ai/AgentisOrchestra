@@ -87,7 +87,10 @@ export async function POST(req: NextRequest) {
   }
 
   // Check that at least one provider is configured
-  if (!body.providers || body.providers.length === 0) {
+  // Claude CLI counts as a provider even without an API key (uses Pro subscription)
+  const hasCliProvider = body.providers?.some((p) => p.provider === "claude-cli")
+  const hasApiProvider = body.providers?.some((p) => p.provider !== "claude-cli" && p.apiKey?.trim())
+  if (!hasCliProvider && !hasApiProvider) {
     return NextResponse.json(
       { error: "At least one AI provider must be configured" },
       { status: 400 }
@@ -177,8 +180,10 @@ export async function POST(req: NextRequest) {
 
       totalAgents++
 
-      // 4. Store provider keys
+      // 4. Store provider keys (skip CLI -- it uses Pro subscription, no API key)
       for (const prov of body.providers) {
+        if (prov.provider === "claude-cli") continue // CLI has no API key to store
+        if (!prov.apiKey?.trim()) continue
         await tx.insert(providerKeys).values({
           provider: prov.provider,
           apiKeyEncrypted: encrypt(prov.apiKey),
