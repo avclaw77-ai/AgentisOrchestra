@@ -4,9 +4,14 @@ import { users, userDepartments } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { generateId } from "@/lib/utils"
 import { hashPassword } from "@/lib/crypto"
+import { getSessionUser } from "@/lib/auth"
 
 /** GET /api/users -- list all users with department assignments */
 export async function GET() {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+  if (user.role !== "admin") return NextResponse.json({ error: "Admin required" }, { status: 403 })
+
   const allUsers = await db.select().from(users)
 
   const result = await Promise.all(
@@ -32,6 +37,10 @@ export async function GET() {
 
 /** POST /api/users -- create a new user (admin only) */
 export async function POST(req: NextRequest) {
+  const caller = await getSessionUser()
+  if (!caller) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+  if (caller.role !== "admin") return NextResponse.json({ error: "Admin required" }, { status: 403 })
+
   const body = await req.json()
   const { email, name, password, role, departmentIds } = body
 

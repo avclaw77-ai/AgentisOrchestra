@@ -2,15 +2,23 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { departments } from "@/db/schema"
 import { eq } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 /** GET /api/departments -- list all departments */
 export async function GET() {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const rows = await db.select().from(departments)
   return NextResponse.json(rows)
 }
 
 /** POST /api/departments -- create a department */
 export async function POST(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+  if (user.role !== "admin") return NextResponse.json({ error: "Admin required" }, { status: 403 })
+
   const body = await req.json()
   const { id, name, description, color, template } = body
 

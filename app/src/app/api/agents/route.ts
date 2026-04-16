@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { agents, agentConfigs } from "@/db/schema"
 import { eq, isNull } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/agents?departmentId=eng (omit for all, "company" for company-level only)
 export async function GET(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
   const departmentId = req.nextUrl.searchParams.get("departmentId")
 
   let rows
@@ -27,6 +30,10 @@ export async function GET(req: NextRequest) {
 
 // POST /api/agents -- create a new agent
 export async function POST(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+  if (user.role === "viewer") return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
+
   const body = await req.json()
   const { id, departmentId, name, role, persona, model, adapterType, isCeo } =
     body

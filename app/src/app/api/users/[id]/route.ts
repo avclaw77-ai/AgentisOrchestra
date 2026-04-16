@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { users, userDepartments } from "@/db/schema"
 import { eq, and } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 /** GET /api/users/:id -- single user with departments */
 export async function GET(
@@ -34,6 +35,10 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const caller = await getSessionUser()
+  if (!caller) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+  if (caller.role !== "admin") return NextResponse.json({ error: "Admin required" }, { status: 403 })
+
   const { id } = await params
   const body = await req.json()
   const { role, departmentIds, name } = body
@@ -65,6 +70,10 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const caller = await getSessionUser()
+  if (!caller) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+  if (caller.role !== "admin") return NextResponse.json({ error: "Admin required" }, { status: 403 })
+
   const { id } = await params
   await db.delete(users).where(eq(users.id, id))
   return NextResponse.json({ deleted: id })

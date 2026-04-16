@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { company } from "@/db/schema"
 import { eq } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/company -- return company record
 export async function GET() {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   try {
     const [row] = await db.select().from(company)
     if (!row) {
@@ -19,6 +23,10 @@ export async function GET() {
 
 // PATCH /api/company -- update company name, mission, locale
 export async function PATCH(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+  if (user.role !== "admin") return NextResponse.json({ error: "Admin required" }, { status: 403 })
+
   try {
     const body = await req.json()
     const { name, mission, locale } = body
