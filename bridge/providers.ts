@@ -27,6 +27,17 @@ export interface ProviderRequest {
   systemPrompt?: string
   history?: { role: string; content: string }[]
   signal: AbortSignal
+  maxTurns?: number        // limit tool-use rounds (default: 5)
+  timeoutMs?: number       // kill after N ms (default: 120000)
+  verbose?: boolean        // include verbose output (default: false)
+}
+
+export interface TokenUsage {
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  cacheCreateTokens: number
+  costUsd: number
 }
 
 // =============================================================================
@@ -38,17 +49,21 @@ export async function executeCLI(
   cb: StreamCallbacks
 ): Promise<void> {
   const cliPath = process.env.CLAUDE_CLI_PATH || "/usr/local/bin/claude"
+  const maxTurns = req.maxTurns || 5
+  const timeoutMs = req.timeoutMs || 120_000 // 2 min default
 
-  // Spawn claude with --print - (stdin prompt) + stream-json output
-  // Mirrors Paperclip's approach: full process.env, stdin pipe for prompt
   const { spawn } = await import("node:child_process")
 
   const args = [
     "--print", "-",
     "--output-format", "stream-json",
-    "--verbose",
+    "--max-turns", String(maxTurns),
     "--model", req.model,
   ]
+
+  if (req.verbose) {
+    args.push("--verbose")
+  }
 
   if (req.systemPrompt) {
     args.push("--system-prompt", req.systemPrompt)
@@ -65,8 +80,17 @@ export async function executeCLI(
     proc.stdin.end()
 
     let fullResult = ""
+    let parsedUsage: TokenUsage | null = null
+
+    // Execution timeout -- prevent runaway agents
+    const timeout = setTimeout(() => {
+      console.warn(`[cli] Execution timeout after ${timeoutMs}ms -- killing process`)
+      proc.kill("SIGTERM")
+      cb.onError(`Execution timed out after ${Math.round(timeoutMs / 1000)}s`)
+    }, timeoutMs)
 
     req.signal.addEventListener("abort", () => {
+      clearTimeout(timeout)
       proc.kill("SIGTERM")
     })
 
@@ -119,9 +143,19 @@ export async function executeCLI(
             cb.onSystem?.(event.message)
           }
 
-          // Final result
-          if (event.type === "result" && event.result) {
-            fullResult = event.result
+          // Final result -- includes real token usage from CLI
+          if (event.type === "result") {
+            if (event.result) fullResult = event.result
+            // Parse real usage data from CLI output
+            if (event.usage) {
+              parsedUsage = {
+                inputTokens: event.usage.input_tokens || 0,
+                outputTokens: event.usage.output_tokens || 0,
+                cacheReadTokens: event.usage.cache_read_input_tokens || 0,
+                cacheCreateTokens: event.usage.cache_creation_input_tokens || 0,
+                costUsd: event.total_cost_usd || 0,
+              }
+            }
           }
         } catch {
           // Not JSON -- raw output, still forward it
@@ -139,7 +173,12 @@ export async function executeCLI(
     })
 
     proc.on("close", (code) => {
+      clearTimeout(timeout)
       if (code === 0 || fullResult) {
+        // Log real usage if available
+        if (parsedUsage) {
+          console.log(`[cli] Usage: ${parsedUsage.inputTokens}in/${parsedUsage.outputTokens}out, cache: ${parsedUsage.cacheReadTokens}read/${parsedUsage.cacheCreateTokens}create, cost: $${parsedUsage.costUsd.toFixed(4)}`)
+        }
         cb.onComplete(fullResult)
         resolve()
       } else {

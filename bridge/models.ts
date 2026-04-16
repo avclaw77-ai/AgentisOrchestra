@@ -24,6 +24,7 @@ export type TaskType =
   | "vision"
   | "conversation"
   | "orchestration"
+  | "monitoring"
 
 export interface ModelDef {
   id: string                    // unique key: "claude-cli:opus", "openrouter:gpt-4o"
@@ -76,7 +77,7 @@ export const MODEL_REGISTRY: ModelDef[] = [
     provider: "claude-cli",
     model: "claude-haiku-4-5",
     name: "Claude Haiku 4.5 (CLI)",
-    strengths: ["quick", "conversation", "code-review"],
+    strengths: ["quick", "conversation", "code-review", "monitoring"],
     costTier: "free",
     mode: "cli",
     contextWindow: 200_000,

@@ -186,9 +186,11 @@ class HeartbeatEngine {
       // Update context snapshot on the run
       // (we already created it, just update)
 
-      // Route to best model
+      // Route to best model -- use haiku for heartbeats, sonnet for chat
+      const isChat = wakeup.source === "chat"
+      const defaultTaskType = isChat ? "conversation" : "monitoring"
       const routeReq: RouteRequest = {
-        taskType: (wakeup.payload?.taskType as TaskType) || "conversation",
+        taskType: (wakeup.payload?.taskType as TaskType) || defaultTaskType,
         agentModel: (wakeup.payload?.agentModel as string) || undefined,
         needsSearch: !!wakeup.payload?.needsSearch,
         needsVision: !!wakeup.payload?.needsVision,
@@ -233,6 +235,10 @@ class HeartbeatEngine {
       const systemPrompt = (context.persona as string) || undefined
       const abortController = new AbortController()
 
+      // Chat: more turns, verbose. Heartbeat: fewer turns, quiet.
+      const maxTurns = isChat ? 5 : 3
+      const timeoutMs = isChat ? 120_000 : 60_000
+
       await executeWithProvider(
         route.model.provider,
         {
@@ -240,6 +246,9 @@ class HeartbeatEngine {
           message: prompt || "",
           systemPrompt,
           signal: abortController.signal,
+          maxTurns,
+          timeoutMs,
+          verbose: isChat, // only verbose for user-facing chat
         },
         callbacks
       )
