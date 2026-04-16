@@ -178,6 +178,7 @@ export const agents = pgTable(
       onDelete: "cascade",
     }), // NULL = company-level (CEO)
     name: text("name").notNull(),
+    displayName: text("display_name"), // optional friendly name (e.g. "Sophie" instead of "Dev") for change management
     role: text("role").notNull(),
     status: text("status").notNull().default("idle"), // idle | active | thinking
     isCeo: boolean("is_ceo").default(false),

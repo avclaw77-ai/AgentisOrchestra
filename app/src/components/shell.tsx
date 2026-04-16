@@ -36,6 +36,9 @@ interface ShellProps {
   selectedDepartment: string | null
   onDepartmentChange: (id: string | null) => void
   children: React.ReactNode
+  userRole?: "admin" | "member" | "viewer"
+  userDepartmentIds?: string[]
+  userName?: string
 }
 
 interface NavGroup {
@@ -79,10 +82,20 @@ export function Shell({
   selectedDepartment,
   onDepartmentChange,
   children,
+  userRole = "admin",
+  userDepartmentIds = [],
+  userName,
 }: ShellProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [deptOpen, setDeptOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Filter departments based on user role
+  const isAdmin = userRole === "admin"
+  const visibleDepartments = isAdmin
+    ? departments
+    : departments.filter((d) => userDepartmentIds.includes(d.id))
+  const showCeoView = isAdmin || visibleDepartments.length > 1
 
   // Restore collapsed state from localStorage
   useEffect(() => {
@@ -143,7 +156,7 @@ export function Shell({
           {!isCollapsed && (
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-                <img src="/logo.svg" alt="Orchestra" className="w-5 h-5" />
+                <img src="/logo-mark.svg" alt="Orchestra" className="w-5 h-5" />
               </div>
               <div className="min-w-0">
                 <h1 className="text-sm font-semibold leading-tight truncate">{companyName}</h1>
@@ -153,7 +166,7 @@ export function Shell({
           )}
           {isCollapsed && (
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <img src="/logo.svg" alt="Orchestra" className="w-5 h-5" />
+              <img src="/logo-mark.svg" alt="Orchestra" className="w-5 h-5" />
             </div>
           )}
           {!isMobile && (
@@ -202,19 +215,25 @@ export function Shell({
                   "absolute top-full mt-1 w-56 bg-card border border-border rounded-xl shadow-lg z-50 py-1",
                   isCollapsed ? "left-full ml-1 -top-2" : "left-0"
                 )}>
-                  <button
-                    onClick={() => handleDeptChange(null)}
-                    className={cn(
-                      "w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-secondary transition-colors",
-                      selectedDepartment === null && "bg-secondary"
-                    )}
-                  >
-                    <Crown size={14} className="text-primary" />
-                    CEO View
-                    <span className="text-xs text-muted-foreground ml-auto">All depts</span>
-                  </button>
-                  <div className="border-t border-border my-1" />
-                  {departments.map((dept) => (
+                  {showCeoView && (
+                    <>
+                      <button
+                        onClick={() => handleDeptChange(null)}
+                        className={cn(
+                          "w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-secondary transition-colors",
+                          selectedDepartment === null && "bg-secondary"
+                        )}
+                      >
+                        <Crown size={14} className="text-primary" />
+                        {isAdmin ? "CEO View" : "All My Depts"}
+                        <span className="text-xs text-muted-foreground ml-auto">
+                          {isAdmin ? "All depts" : `${visibleDepartments.length} depts`}
+                        </span>
+                      </button>
+                      <div className="border-t border-border my-1" />
+                    </>
+                  )}
+                  {visibleDepartments.map((dept) => (
                     <button
                       key={dept.id}
                       onClick={() => handleDeptChange(dept.id)}
@@ -292,8 +311,8 @@ export function Shell({
             </div>
             {!isCollapsed && (
               <div className="min-w-0">
-                <p className="text-sm font-medium leading-tight">Admin</p>
-                <p className="text-[11px] text-muted-foreground leading-tight">Administrator</p>
+                <p className="text-sm font-medium leading-tight">{userName || "Admin"}</p>
+                <p className="text-[11px] text-muted-foreground leading-tight capitalize">{userRole}</p>
               </div>
             )}
           </div>
@@ -334,7 +353,7 @@ export function Shell({
         </button>
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center shrink-0">
-            <img src="/logo.svg" alt="Orchestra" className="w-4 h-4" />
+            <img src="/logo-mark.svg" alt="Orchestra" className="w-4 h-4" />
           </div>
           <span className="text-sm font-semibold truncate">{companyName}</span>
         </div>

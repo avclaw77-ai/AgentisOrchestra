@@ -19,6 +19,7 @@ import { ApprovalFeed } from "@/components/approval-feed"
 import { SkillLibrary } from "@/components/skill-library"
 import { DecisionLog } from "@/components/decision-log"
 import { ActivityLog } from "@/components/activity-log"
+import { TeamManager } from "@/components/team-manager"
 import type {
   Agent,
   AgentConfig,
@@ -78,8 +79,13 @@ export default function DashboardPage() {
   const [selectedAgentForProfile, setSelectedAgentForProfile] = useState<string | null>(null)
   const [agentConfig, setAgentConfig] = useState<AgentConfig | null>(null)
 
+  // User profile for multi-user
+  const [userRole, setUserRole] = useState<"admin" | "member" | "viewer">("admin")
+  const [userDepartmentIds, setUserDepartmentIds] = useState<string[]>([])
+  const [userName, setUserName] = useState<string>("")
+
   // Settings sub-tab
-  const [settingsTab, setSettingsTab] = useState<"general" | "approvals" | "skills" | "decisions" | "activity" | "export">("general")
+  const [settingsTab, setSettingsTab] = useState<"general" | "team" | "approvals" | "skills" | "decisions" | "activity" | "export">("general")
 
   // Company general form state
   const [companyName, setCompanyName] = useState("")
@@ -175,6 +181,15 @@ export default function DashboardPage() {
         const ceo = ags.find((a: Agent) => a.isCeo)
         if (ceo) setSelectedAgent(ceo.id)
         else if (ags.length > 0) setSelectedAgent(ags[0].id)
+      }
+
+      // Fetch user profile for multi-user context
+      const profileRes = await fetch("/api/auth/me")
+      if (profileRes.ok) {
+        const profile = await profileRes.json()
+        setUserRole(profile.role || "admin")
+        setUserDepartmentIds(profile.departmentIds || [])
+        setUserName(profile.name || "")
       }
     } catch {
       // Will work once DB is populated via setup wizard
@@ -792,6 +807,9 @@ export default function DashboardPage() {
       departments={departments}
       selectedDepartment={selectedDepartment}
       onDepartmentChange={setSelectedDepartment}
+      userRole={userRole}
+      userDepartmentIds={userDepartmentIds}
+      userName={userName}
     >
       {view === "dashboard" && (
         <>
@@ -941,6 +959,7 @@ export default function DashboardPage() {
             {(
               [
                 { key: "general", label: "General" },
+                { key: "team", label: "Team" },
                 { key: "activity", label: "Activity" },
                 { key: "decisions", label: "Decisions" },
                 { key: "approvals", label: "Approvals" },
@@ -1004,6 +1023,10 @@ export default function DashboardPage() {
                 </button>
               </div>
             </div>
+          )}
+
+          {settingsTab === "team" && (
+            <TeamManager departments={departments} />
           )}
 
           {settingsTab === "activity" && (

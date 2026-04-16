@@ -37,7 +37,7 @@ export function WelcomeStep({ locale, onLocaleChange }: WelcomeStepProps) {
       {/* Brand */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center">
-          <img src="/logo.svg" alt="AgentisOrchestra" className="w-7 h-7" />
+          <img src="/logo-mark.svg" alt="AgentisOrchestra" className="w-7 h-7" />
         </div>
         <div>
           <div className="text-xl font-extrabold tracking-tight text-foreground">

@@ -71,6 +71,7 @@ export function AgentProfile({
   const [tab, setTab] = useState<Tab>("overview")
 
   // Config form state
+  const [displayName, setDisplayName] = useState(agent.displayName || "")
   const [persona, setPersona] = useState(config?.persona || "")
   const [model, setModel] = useState(config?.model || "claude-cli:sonnet")
   const [adapterType, setAdapterType] = useState(config?.adapterType || "sdk")
@@ -185,6 +186,16 @@ export function AgentProfile({
 
   async function handleSaveConfig() {
     setSaving(true)
+    // Save displayName on the agent record itself
+    try {
+      await fetch(`/api/agents/${agent.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayName: displayName || null }),
+      })
+    } catch {
+      // Non-blocking -- config save continues
+    }
     const budgetCents = budget ? Math.round(parseFloat(budget) * 100) : null
     onSave({
       agentId: agent.id,
@@ -231,11 +242,13 @@ export function AgentProfile({
                 className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0"
                 style={{ backgroundColor: AGENT_COLORS[agent.id] || "#6366f1" }}
               >
-                {agent.name.slice(0, 2).toUpperCase()}
+                {(agent.displayName || agent.name).slice(0, 2).toUpperCase()}
               </div>
               <div>
-                <h2 className="text-base font-semibold">{agent.name}</h2>
-                <p className="text-sm text-muted-foreground">{agent.role}</p>
+                <h2 className="text-base font-semibold">{agent.displayName || agent.name}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {agent.displayName ? `${agent.name} — ${agent.role}` : agent.role}
+                </p>
                 {dept && (
                   <p className="text-xs text-muted-foreground mt-0.5">
                     <span
@@ -420,6 +433,21 @@ export function AgentProfile({
                     </>
                   )}
                 </button>
+              </div>
+
+              {/* Display Name */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Display Name</label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder={`Optional friendly name (e.g. "Sophie" instead of "${agent.name}")`}
+                  className="mt-1 w-full bg-inset rounded-lg px-3 py-2 text-sm outline-none"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Helps with change management -- employees engage more with named agents
+                </p>
               </div>
 
               {/* Persona */}

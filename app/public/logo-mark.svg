@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!--
+    AgentisOrchestra Logo Mark (white variant for colored backgrounds)
+    A stylized "A" formed by three connected nodes in a hierarchical tree.
+  -->
+
+  <!-- Connection lines -->
+  <line x1="256" y1="128" x2="144" y2="336" stroke="white" stroke-width="28" stroke-linecap="round"/>
+  <line x1="256" y1="128" x2="368" y2="336" stroke="white" stroke-width="28" stroke-linecap="round"/>
+  <line x1="184" y1="264" x2="328" y2="264" stroke="white" stroke-width="24" stroke-linecap="round"/>
+
+  <!-- Secondary child branches -->
+  <line x1="144" y1="336" x2="88" y2="408" stroke="white" stroke-width="16" stroke-linecap="round" opacity="0.6"/>
+  <line x1="144" y1="336" x2="200" y2="408" stroke="white" stroke-width="16" stroke-linecap="round" opacity="0.6"/>
+  <line x1="368" y1="336" x2="312" y2="408" stroke="white" stroke-width="16" stroke-linecap="round" opacity="0.6"/>
+  <line x1="368" y1="336" x2="424" y2="408" stroke="white" stroke-width="16" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- Leaf nodes -->
+  <circle cx="88" cy="408" r="20" fill="white" opacity="0.4"/>
+  <circle cx="200" cy="408" r="20" fill="white" opacity="0.4"/>
+  <circle cx="312" cy="408" r="20" fill="white" opacity="0.4"/>
+  <circle cx="424" cy="408" r="20" fill="white" opacity="0.4"/>
+
+  <!-- Primary nodes -->
+  <circle cx="256" cy="128" r="40" fill="white"/>
+  <circle cx="256" cy="128" r="16" fill="white" opacity="0.3"/>
+
+  <circle cx="144" cy="336" r="32" fill="white" opacity="0.9"/>
+  <circle cx="144" cy="336" r="12" fill="white" opacity="0.3"/>
+
+  <circle cx="368" cy="336" r="32" fill="white" opacity="0.9"/>
+  <circle cx="368" cy="336" r="12" fill="white" opacity="0.3"/>
+
+  <!-- Crossbar dots -->
+  <circle cx="216" cy="264" r="14" fill="white" opacity="0.6"/>
+  <circle cx="256" cy="264" r="14" fill="white" opacity="0.9"/>
+  <circle cx="296" cy="264" r="14" fill="white" opacity="0.6"/>
+</svg>

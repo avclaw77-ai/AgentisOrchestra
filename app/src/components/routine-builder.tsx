@@ -163,7 +163,7 @@ export function RoutineBuilder({
 
   const getAgentLabel = (agent: Agent) => {
     const dept = departments.find((d) => d.id === agent.departmentId)
-    return `${agent.name} (${dept?.name || "CEO"})`
+    return `${agent.displayName || agent.name} (${dept?.name || "CEO"})`
   }
 
   const addStep = () => {

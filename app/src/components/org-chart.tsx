@@ -43,11 +43,11 @@ function AgentNode({
         className="w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold text-white shrink-0"
         style={{ backgroundColor: AGENT_COLORS[agent.id] || "#6366f1" }}
       >
-        {agent.name.slice(0, 2).toUpperCase()}
+        {(agent.displayName || agent.name).slice(0, 2).toUpperCase()}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium truncate">{agent.name}</span>
+          <span className="text-xs font-medium truncate">{agent.displayName || agent.name}</span>
           <div
             className={cn(
               "w-2 h-2 rounded-full shrink-0",
@@ -84,7 +84,7 @@ function CeoNode({
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-sm font-semibold truncate">{agent.name}</span>
+          <span className="text-sm font-semibold truncate">{agent.displayName || agent.name}</span>
           <div
             className={cn(
               "w-2.5 h-2.5 rounded-full shrink-0",

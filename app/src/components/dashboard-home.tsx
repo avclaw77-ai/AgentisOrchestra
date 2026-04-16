@@ -175,11 +175,11 @@ export function DashboardHome({ agents, departments, onSelectAgent }: DashboardH
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
                   style={{ backgroundColor: AGENT_COLORS[agent.id] || "#6366f1" }}
                 >
-                  {agent.name.slice(0, 2).toUpperCase()}
+                  {(agent.displayName || agent.name).slice(0, 2).toUpperCase()}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium truncate">{agent.name}</span>
+                    <span className="text-sm font-medium truncate">{agent.displayName || agent.name}</span>
                     <div
                       className={cn(
                         "w-2 h-2 rounded-full shrink-0",

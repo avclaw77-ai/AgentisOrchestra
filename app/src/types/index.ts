@@ -110,6 +110,7 @@ export interface Agent {
   id: string
   departmentId: string | null
   name: string
+  displayName: string | null
   role: string
   status: AgentStatus
   isCeo: boolean

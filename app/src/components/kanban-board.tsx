@@ -66,7 +66,7 @@ function TaskCard({
           <div className="flex items-center gap-2 mt-1">
             {agent && (
               <span className="text-[11px] text-muted-foreground truncate">
-                {agent.name}
+                {agent.displayName || agent.name}
               </span>
             )}
             {task.phase && (
