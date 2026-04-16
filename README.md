@@ -16,7 +16,7 @@ AgentisOrchestra is an open-source platform for building and running AI agent te
 Tell it about your company. It proposes a tailored agent team. You customize, activate, and watch them work.
 
 ```bash
-git clone https://github.com/agentislab/agentis-orchestra.git
+git clone https://github.com/avclaw77-ai/AgentisOrchestra.git
 cd agentis-orchestra
 make setup && make up
 # Open http://localhost:3000
@@ -100,6 +100,19 @@ No YAML. No config files. No CLI flags.
 - Plugin system with Worker thread isolation
 - Crash recovery with exponential backoff
 
+**Multi-User Teams**
+- Admin / member / viewer roles with department-scoped access
+- Multi-department access (one person can manage multiple departments)
+- CEO view for admins, filtered department view for members
+- Team management UI for inviting and managing users
+- Agent display names for change management ("Sophie" instead of "Dev Agent")
+
+**System Integration** (Phase 1)
+- Connector Agents plug into existing company systems (CRM, ERP, databases)
+- Configuration-driven -- no custom code per client
+- MCP tool servers for high-frequency integrations
+- Connector credentials encrypted alongside provider keys
+
 **Bilingual**
 - English and Quebec French natively
 - Not translated -- written for each language
@@ -139,7 +152,7 @@ No YAML. No config files. No CLI flags.
 ### Docker (recommended)
 
 ```bash
-git clone https://github.com/agentislab/agentis-orchestra.git
+git clone https://github.com/avclaw77-ai/AgentisOrchestra.git
 cd agentis-orchestra
 make setup    # generates .env with random secrets
 make up       # starts app + bridge + postgres
