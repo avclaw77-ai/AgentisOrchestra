@@ -188,29 +188,41 @@ export default function DashboardPage() {
     phase: string | null
     notes: string
   }) {
-    await fetch("/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
-    setShowCreateTask(false)
-    await fetchTasks()
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Task created")
+      setShowCreateTask(false)
+      await fetchTasks()
+    } catch {
+      toast.error("Failed to create task")
+    }
   }
 
   async function handleAddComment(body: string) {
     if (!selectedTaskId) return
-    await fetch(`/api/tasks/${selectedTaskId}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body, authorUserId: "admin" }),
-    })
-    // Refresh comments
-    const res = await fetch(`/api/tasks/${selectedTaskId}`)
-    if (res.ok) {
-      const data = await res.json()
-      const { comments, ...task } = data
-      setSelectedTask(task)
-      setTaskComments(comments || [])
+    try {
+      const postRes = await fetch(`/api/tasks/${selectedTaskId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body, authorUserId: "admin" }),
+      })
+      if (!postRes.ok) throw new Error()
+      toast.success("Comment added")
+      // Refresh comments
+      const res = await fetch(`/api/tasks/${selectedTaskId}`)
+      if (res.ok) {
+        const data = await res.json()
+        const { comments, ...task } = data
+        setSelectedTask(task)
+        setTaskComments(comments || [])
+      }
+    } catch {
+      toast.error("Failed to add comment")
     }
   }
 
@@ -259,36 +271,61 @@ export default function DashboardPage() {
     triggers: unknown[]
     steps: unknown[]
   }) {
-    await fetch("/api/routines", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    })
-    setShowRoutineBuilder(false)
-    setEditingRoutine(null)
-    await fetchRoutines()
+    try {
+      const res = await fetch("/api/routines", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Routine created")
+      setShowRoutineBuilder(false)
+      setEditingRoutine(null)
+      await fetchRoutines()
+    } catch {
+      toast.error("Failed to create routine")
+    }
   }
 
   async function handleRoutineStatusChange(id: string, status: string) {
-    await fetch("/api/routines", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status }),
-    })
-    await fetchRoutines()
+    try {
+      const res = await fetch("/api/routines", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status }),
+      })
+      if (!res.ok) throw new Error()
+      const label = status === "active" ? "activated" : status
+      toast.success(`Routine ${label}`)
+      await fetchRoutines()
+    } catch {
+      toast.error("Failed to update routine status")
+    }
   }
 
   async function handleRoutineTrigger(id: string) {
-    await fetch(`/api/routines/${id}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    })
-    await fetchRoutines()
+    try {
+      const res = await fetch(`/api/routines/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Routine triggered")
+      await fetchRoutines()
+    } catch {
+      toast.error("Failed to trigger routine")
+    }
   }
 
   async function handleRoutineDelete(id: string) {
-    await fetch(`/api/routines?id=${id}`, { method: "DELETE" })
-    await fetchRoutines()
+    try {
+      const res = await fetch(`/api/routines?id=${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error()
+      toast.success("Routine deleted")
+      await fetchRoutines()
+    } catch {
+      toast.error("Failed to delete routine")
+    }
   }
 
   async function handleRoutineSelect(id: string) {
@@ -338,24 +375,36 @@ export default function DashboardPage() {
     departmentId: string | null
     parentId: string | null
   }) {
-    await fetch("/api/goals", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    })
-    await fetchGoals()
+    try {
+      const res = await fetch("/api/goals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Goal created")
+      await fetchGoals()
+    } catch {
+      toast.error("Failed to create goal")
+    }
   }
 
   async function handleUpdateGoal(
     id: string,
     data: { title?: string; description?: string; status?: string }
   ) {
-    await fetch("/api/goals", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, ...data }),
-    })
-    await fetchGoals()
+    try {
+      const res = await fetch("/api/goals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...data }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Goal updated")
+      await fetchGoals()
+    } catch {
+      toast.error("Failed to update goal")
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -396,30 +445,48 @@ export default function DashboardPage() {
   }, [view, settingsTab, selectedDepartment, fetchApprovals])
 
   async function handleApprove(id: number, note: string) {
-    await fetch("/api/approvals", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status: "approved", decisionNote: note, decidedByUserId: "admin" }),
-    })
-    await fetchApprovals()
+    try {
+      const res = await fetch("/api/approvals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "approved", decisionNote: note, decidedByUserId: "admin" }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Approved")
+      await fetchApprovals()
+    } catch {
+      toast.error("Failed to approve")
+    }
   }
 
   async function handleReject(id: number, note: string) {
-    await fetch("/api/approvals", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status: "rejected", decisionNote: note, decidedByUserId: "admin" }),
-    })
-    await fetchApprovals()
+    try {
+      const res = await fetch("/api/approvals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "rejected", decisionNote: note, decidedByUserId: "admin" }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Rejected")
+      await fetchApprovals()
+    } catch {
+      toast.error("Failed to reject")
+    }
   }
 
   async function handleRequestRevision(id: number, note: string) {
-    await fetch("/api/approvals", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status: "revision_requested", decisionNote: note, decidedByUserId: "admin" }),
-    })
-    await fetchApprovals()
+    try {
+      const res = await fetch("/api/approvals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "revision_requested", decisionNote: note, decidedByUserId: "admin" }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Revision requested")
+      await fetchApprovals()
+    } catch {
+      toast.error("Failed to request revision")
+    }
   }
 
   async function handleApprovalComment(id: number, body: string) {
@@ -469,24 +536,36 @@ export default function DashboardPage() {
     sourceRef: string
     definition: Record<string, unknown>
   }) {
-    await fetch("/api/skills", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    })
-    await fetchSkills()
+    try {
+      const res = await fetch("/api/skills", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Skill created")
+      await fetchSkills()
+    } catch {
+      toast.error("Failed to create skill")
+    }
   }
 
   async function handleUpdateSkill(
     id: number,
     data: { name?: string; description?: string; isActive?: boolean; definition?: Record<string, unknown> }
   ) {
-    await fetch("/api/skills", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, ...data }),
-    })
-    await fetchSkills()
+    try {
+      const res = await fetch("/api/skills", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...data }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Skill updated")
+      await fetchSkills()
+    } catch {
+      toast.error("Failed to update skill")
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -567,18 +646,18 @@ export default function DashboardPage() {
   async function handleExport() {
     try {
       const res = await fetch("/api/company/export")
-      if (res.ok) {
-        const data = await res.json()
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `company-template-${Date.now()}.json`
-        a.click()
-        URL.revokeObjectURL(url)
-      }
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `company-template-${Date.now()}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success("Company config exported")
     } catch {
-      // Export failed
+      toast.error("Failed to export config")
     }
   }
 
@@ -591,14 +670,11 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(template),
       })
-      if (res.ok) {
-        const result = await res.json()
-        alert(`Import complete: ${JSON.stringify(result.summary, null, 2)}`)
-        // Refresh data
-        await fetchData()
-      }
+      if (!res.ok) throw new Error()
+      toast.success("Template imported")
+      await fetchData()
     } catch {
-      alert("Import failed. Check the file format.")
+      toast.error("Import failed")
     }
   }
 

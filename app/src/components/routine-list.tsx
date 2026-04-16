@@ -1,6 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 import {
   Plus,
   Play,
@@ -11,7 +13,10 @@ import {
   Hand,
   Repeat,
   ChevronRight,
+  ChevronDown,
   Zap,
+  Copy,
+  Send,
 } from "lucide-react"
 import type { Routine, RoutineTrigger } from "@/types"
 
@@ -92,6 +97,7 @@ export function RoutineList({
   onStatusChange,
   onDelete,
 }: RoutineListProps) {
+  const [expandedWebhook, setExpandedWebhook] = useState<string | null>(null)
   if (routines.length === 0) {
     return (
       <div className="text-center py-16">
@@ -131,105 +137,171 @@ export function RoutineList({
           const status = STATUS_STYLES[routine.status] || STATUS_STYLES.draft
           const trigger = routine.triggers?.[0]
 
+          const webhookTrigger = routine.triggers?.find(t => t.type === "webhook")
+          const isWebhookExpanded = expandedWebhook === routine.id
+
           return (
             <div
               key={routine.id}
-              className="bg-card border border-border rounded-xl p-4 hover:border-primary/30 transition-colors cursor-pointer"
-              onClick={() => onSelect(routine.id)}
+              className="bg-card border border-border rounded-xl hover:border-primary/30 transition-colors"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Repeat size={16} className="text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-medium truncate">
-                        {routine.name}
-                      </h3>
-                      <span
-                        className={cn(
-                          "px-2 py-0.5 rounded-full text-xs font-medium shrink-0",
-                          status.bg,
-                          status.text
-                        )}
-                      >
-                        {status.label}
-                      </span>
+              <div
+                className="p-4 cursor-pointer"
+                onClick={() => onSelect(routine.id)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Repeat size={16} className="text-primary" />
                     </div>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      {trigger && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          {getTriggerIcon(trigger.type)}
-                          {getTriggerLabel(trigger)}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-medium truncate">
+                          {routine.name}
+                        </h3>
+                        <span
+                          className={cn(
+                            "px-2 py-0.5 rounded-full text-xs font-medium shrink-0",
+                            status.bg,
+                            status.text
+                          )}
+                        >
+                          {status.label}
                         </span>
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        {routine.stepCount || 0} step
-                        {(routine.stepCount || 0) !== 1 ? "s" : ""}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {routine.runCount || 0} run
-                        {(routine.runCount || 0) !== 1 ? "s" : ""}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        Last: {formatTimeAgo(routine.lastTriggeredAt)}
-                      </span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        {trigger && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            {getTriggerIcon(trigger.type)}
+                            {getTriggerLabel(trigger)}
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {routine.stepCount || 0} step
+                          {(routine.stepCount || 0) !== 1 ? "s" : ""}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {routine.runCount || 0} run
+                          {(routine.runCount || 0) !== 1 ? "s" : ""}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          Last: {formatTimeAgo(routine.lastTriggeredAt)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-1 shrink-0 ml-3">
-                  {/* Quick actions */}
-                  {routine.status === "active" && (
+                  <div className="flex items-center gap-1 shrink-0 ml-3">
+                    {/* Quick actions */}
+                    {routine.status === "active" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onStatusChange(routine.id, "paused")
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-600 transition-colors"
+                        title="Pause"
+                      >
+                        <Pause size={14} />
+                      </button>
+                    )}
+                    {(routine.status === "draft" || routine.status === "paused") && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onStatusChange(routine.id, "active")
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-600 transition-colors"
+                        title="Activate"
+                      >
+                        <Play size={14} />
+                      </button>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        onStatusChange(routine.id, "paused")
+                        onTrigger(routine.id)
                       }}
-                      className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-600 transition-colors"
-                      title="Pause"
+                      className="p-1.5 rounded-lg hover:bg-primary/10 text-primary transition-colors"
+                      title="Trigger Now"
                     >
-                      <Pause size={14} />
+                      <Zap size={14} />
                     </button>
-                  )}
-                  {(routine.status === "draft" || routine.status === "paused") && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        onStatusChange(routine.id, "active")
+                        if (confirm(`Delete routine "${routine.name}"?`)) {
+                          onDelete(routine.id)
+                        }
                       }}
-                      className="p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-600 transition-colors"
-                      title="Activate"
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
+                      title="Delete"
                     >
-                      <Play size={14} />
+                      <Trash2 size={14} />
                     </button>
-                  )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onTrigger(routine.id)
-                    }}
-                    className="p-1.5 rounded-lg hover:bg-primary/10 text-primary transition-colors"
-                    title="Trigger Now"
-                  >
-                    <Zap size={14} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (confirm(`Delete routine "${routine.name}"?`)) {
-                        onDelete(routine.id)
-                      }
-                    }}
-                    className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
-                    title="Delete"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                  <ChevronRight size={14} className="text-muted-foreground ml-1" />
+                    <ChevronRight size={14} className="text-muted-foreground ml-1" />
+                  </div>
                 </div>
               </div>
+
+              {/* Webhook test section */}
+              {webhookTrigger && (
+                <div className="border-t border-border">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setExpandedWebhook(isWebhookExpanded ? null : routine.id)
+                    }}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+                  >
+                    <Webhook size={12} />
+                    <span>Test Webhook</span>
+                    {isWebhookExpanded ? <ChevronDown size={12} className="ml-auto" /> : <ChevronRight size={12} className="ml-auto" />}
+                  </button>
+                  {isWebhookExpanded && (
+                    <div className="px-4 pb-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 text-xs bg-secondary rounded-lg px-3 py-2 font-mono truncate">
+                          {`${window.location.origin}/api/routines/${routine.id}`}
+                        </code>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigator.clipboard.writeText(`${window.location.origin}/api/routines/${routine.id}`)
+                            toast.success("URL copied")
+                          }}
+                          className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                          title="Copy URL"
+                        >
+                          <Copy size={14} />
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            try {
+                              const res = await fetch(`/api/routines/${routine.id}`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                              })
+                              if (!res.ok) throw new Error()
+                              toast.success("Webhook test sent")
+                            } catch {
+                              toast.error("Webhook test failed")
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors shrink-0"
+                        >
+                          <Send size={12} />
+                          Send Test
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        POST to this URL to trigger the routine externally.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )
         })}

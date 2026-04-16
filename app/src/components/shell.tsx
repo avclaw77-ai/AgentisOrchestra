@@ -127,6 +127,14 @@ export function Shell({
 
     return (
       <div className="flex flex-col h-full">
+        {/* Department accent bar */}
+        {selectedDepartment && currentDept && (
+          <div
+            className="h-1 w-full shrink-0"
+            style={{ backgroundColor: currentDept.color }}
+          />
+        )}
+
         {/* Logo + collapse toggle */}
         <div className={cn(
           "flex items-center shrink-0 h-14 border-b border-border px-3",

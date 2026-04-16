@@ -361,6 +361,46 @@ export function CostDashboard() {
         />
       </div>
 
+      {/* Daily Spend Chart */}
+      {s.byDay.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-5">
+          <h3 className="text-sm font-semibold mb-4">Daily Spend</h3>
+          <div className="h-32 flex items-end gap-1">
+            {s.byDay.map((day, i) => {
+              const maxCents = Math.max(...s.byDay.map(d => d.cents), 1)
+              const heightPct = (day.cents / maxCents) * 100
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1" title={`${day.date}: ${formatDollars(day.cents)}`}>
+                  <div className="w-full bg-primary/20 rounded-t relative" style={{ height: `${Math.max(heightPct, 2)}%` }}>
+                    <div className="w-full h-full bg-primary rounded-t" />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-[10px] text-muted-foreground">1st</span>
+            <span className="text-[10px] text-muted-foreground">15th</span>
+            <span className="text-[10px] text-muted-foreground">30th</span>
+          </div>
+        </div>
+      )}
+
+      {/* CLI Savings callout card */}
+      {s.cliSavings > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <DollarSign size={16} className="text-green-600" />
+            <h3 className="text-sm font-semibold text-green-800">CLI Savings</h3>
+          </div>
+          <p className="text-2xl font-bold text-green-700">{formatDollars(s.cliSavings)}</p>
+          <p className="text-xs text-green-600 mt-1">saved this month vs API pricing</p>
+          <p className="text-xs text-muted-foreground mt-2">
+            {s.totalRuns} runs on CLI models (free). Equivalent API cost: {formatDollars(s.cliSavings)}
+          </p>
+        </div>
+      )}
+
       {/* Two-column layout: Department + Model breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* By Department */}
