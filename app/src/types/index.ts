@@ -164,6 +164,7 @@ export interface Task {
   phase: string | null
   estimatedTokens: number | null
   actualTokens: number
+  goalId: string | null
   createdAt: string
   updatedAt: string
 }
@@ -390,4 +391,101 @@ export interface CostSummary {
   byDepartment: Array<{ departmentId: string; name: string; cents: number }>
   tasksCompleted: number
   totalRuns: number
+}
+
+// =============================================================================
+// Goals -- Strategic hierarchy
+// =============================================================================
+
+export interface Goal {
+  id: string
+  departmentId: string | null
+  title: string
+  description: string | null
+  parentId: string | null
+  status: "planned" | "active" | "completed" | "cancelled"
+  ownerAgentId: string | null
+  createdAt: string
+  children?: Goal[] // for tree rendering
+}
+
+// =============================================================================
+// Approvals -- Governance workflows
+// =============================================================================
+
+export interface ApprovalRequest {
+  id: number
+  departmentId: string | null
+  type: string
+  title: string
+  description: string | null
+  requestedByAgentId: string | null
+  requestedByUserId: string | null
+  status: "pending" | "revision_requested" | "approved" | "rejected" | "cancelled"
+  payload: Record<string, unknown>
+  decisionNote: string | null
+  decidedByUserId: string | null
+  decidedAt: string | null
+  createdAt: string
+}
+
+export interface ApprovalComment {
+  id: number
+  approvalId: number
+  authorAgentId: string | null
+  authorUserId: string | null
+  body: string
+  createdAt: string
+}
+
+// =============================================================================
+// Company Skills -- Versioned skill library
+// =============================================================================
+
+export interface CompanySkill {
+  id: number
+  key: string
+  name: string
+  description: string | null
+  version: number
+  sourceType: string
+  sourceRef: string | null
+  definition: Record<string, unknown>
+  isActive: boolean
+}
+
+// =============================================================================
+// Company Template -- Export/Import
+// =============================================================================
+
+export interface CompanyTemplate {
+  version: number
+  company: { name: string; mission: string | null; locale: string }
+  departments: Array<{
+    id: string
+    name: string
+    description: string | null
+    color: string
+    template: string | null
+    agents: Array<{
+      id: string
+      name: string
+      role: string
+      model: string
+      persona: string | null
+    }>
+    goals: Array<{ title: string; description: string | null }>
+  }>
+  skills: Array<{
+    key: string
+    name: string
+    description: string | null
+    definition: Record<string, unknown>
+  }>
+  routines: Array<{
+    name: string
+    description: string | null
+    steps: Array<{ agentId: string; promptTemplate: string }>
+    triggers: Array<{ type: string; cronExpression?: string }>
+  }>
 }

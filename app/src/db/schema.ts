@@ -228,6 +228,7 @@ export const tasks = pgTable(
     phase: text("phase"), // research | spec | design | build | qa | deploy
     estimatedTokens: integer("estimated_tokens"),
     actualTokens: integer("actual_tokens").default(0),
+    goalId: text("goal_id"), // references goals(id), set null on delete handled at app level
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -610,3 +611,122 @@ export const agentWakeupRequests = pgTable(
     index("wakeup_requests_agent_status_idx").on(t.agentId, t.status),
   ]
 )
+
+// =============================================================================
+// GOALS -- Strategic goal hierarchy
+// =============================================================================
+
+export const goals = pgTable(
+  "goals",
+  {
+    id: text("id").primaryKey(),
+    departmentId: text("department_id").references(() => departments.id, {
+      onDelete: "set null",
+    }), // NULL = company mission
+    title: text("title").notNull(),
+    description: text("description"),
+    parentId: text("parent_id"), // references goals(id), set null on delete handled at app level
+    status: text("status").default("planned"), // planned | active | completed | cancelled
+    ownerAgentId: text("owner_agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("goals_department_idx").on(t.departmentId),
+    index("goals_parent_idx").on(t.parentId),
+  ]
+)
+
+// =============================================================================
+// APPROVAL REQUESTS -- Governance workflows
+// =============================================================================
+
+export const approvalRequests = pgTable(
+  "approval_requests",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    departmentId: text("department_id").references(() => departments.id, {
+      onDelete: "set null",
+    }),
+    type: text("type").notNull(), // 'agent_hire' | 'budget_override' | 'strategy_proposal' | 'task_escalation' | 'routine_activation'
+    title: text("title").notNull(),
+    description: text("description"),
+    requestedByAgentId: text("requested_by_agent_id").references(
+      () => agents.id,
+      { onDelete: "set null" }
+    ),
+    requestedByUserId: text("requested_by_user_id"),
+    status: text("status").notNull().default("pending"), // pending | revision_requested | approved | rejected | cancelled
+    payload: jsonb("payload").default({}),
+    decisionNote: text("decision_note"),
+    decidedByUserId: text("decided_by_user_id"),
+    decidedAt: timestamp("decided_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("approval_requests_status_idx").on(t.status),
+    index("approval_requests_department_idx").on(t.departmentId),
+  ]
+)
+
+// =============================================================================
+// APPROVAL COMMENTS -- Discussion on approval requests
+// =============================================================================
+
+export const approvalComments = pgTable(
+  "approval_comments",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    approvalId: integer("approval_id")
+      .notNull()
+      .references(() => approvalRequests.id, { onDelete: "cascade" }),
+    authorAgentId: text("author_agent_id"),
+    authorUserId: text("author_user_id"),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  }
+)
+
+// =============================================================================
+// COMPANY SKILLS -- Versioned skill library
+// =============================================================================
+
+export const companySkills = pgTable(
+  "company_skills",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    key: text("key").notNull().unique(),
+    name: text("name").notNull(),
+    description: text("description"),
+    version: integer("version").default(1),
+    sourceType: text("source_type").default("local"), // 'local' | 'github' | 'url' | 'bundled'
+    sourceRef: text("source_ref"), // github repo URL, external URL, etc.
+    definition: jsonb("definition").default({}), // skill configuration/schema
+    isActive: boolean("is_active").default(true),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("company_skills_key_idx").on(t.key)]
+)
+
+// =============================================================================
+// DOCUMENTS -- Department knowledge base
+// =============================================================================
+
+export const documents = pgTable("documents", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  departmentId: text("department_id").references(() => departments.id, {
+    onDelete: "set null",
+  }),
+  title: text("title").notNull(),
+  format: text("format").default("markdown"),
+  body: text("body"),
+  revisionNumber: integer("revision_number").default(1),
+  createdByAgentId: text("created_by_agent_id"),
+  createdByUserId: text("created_by_user_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
