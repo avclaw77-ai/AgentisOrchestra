@@ -43,6 +43,7 @@ interface ProviderStatus {
 interface AgentSetup {
   id: string
   name: string
+  displayName: string
   role: string
   model: string
 }
@@ -129,7 +130,7 @@ export default function SetupPage() {
       description: d.description,
       color: d.color,
       template: d.template,
-      agents: d.agents.map((a) => ({ id: a.id, name: a.name, role: a.role, model: a.model })),
+      agents: d.agents.map((a) => ({ id: a.id, name: a.name, displayName: "", role: a.role, model: a.model })),
     }))
     setDepartments(depts)
     // Skip to providers step (step 4) -- departments are pre-filled
@@ -145,7 +146,7 @@ export default function SetupPage() {
         description: d.description,
         color: d.color,
         template: null,
-        agents: d.agents.map((a) => ({ id: a.id, name: a.name, role: a.role, model: a.model })),
+        agents: d.agents.map((a) => ({ id: a.id, name: a.name, displayName: "", role: a.role, model: a.model })),
       }))
       setDepartments(proposedDepts)
     }
@@ -155,7 +156,7 @@ export default function SetupPage() {
         const tpl = getTemplate(currentDept.template)
         if (tpl && currentAgents.length === 0) {
           setCurrentAgents(
-            tpl.agents.map((a) => ({ id: a.id, name: a.name, role: a.role, model: a.model }))
+            tpl.agents.map((a) => ({ id: a.id, name: a.name, displayName: "", role: a.role, model: a.model }))
           )
         }
       }
@@ -295,6 +296,7 @@ export default function SetupPage() {
             agents: d.agents.map((a) => ({
               id: a.id || a.name.toLowerCase().replace(/[^a-z0-9]/g, "-"),
               name: a.name,
+              displayName: a.displayName || null,
               role: a.role,
               model: a.model,
             })),

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 export interface AgentSetup {
   id: string
   name: string
+  displayName: string
   role: string
   model: string
 }
@@ -51,6 +52,7 @@ export function AgentsStep({
     onAdd({
       id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       name,
+      displayName: "",
       role: "Custom",
       model: modelOptions[0]?.id ?? "claude-cli:sonnet",
     })
@@ -95,15 +97,26 @@ export function AgentsStep({
                 style={{ background: departmentColor }}
               />
 
-              {/* Name */}
+              {/* Name (role identifier) */}
               <input
                 type="text"
                 value={agent.name}
                 onChange={(e) =>
                   onChange(i, { ...agent, name: e.target.value })
                 }
-                className="flex-1 min-w-0 bg-transparent text-sm font-semibold outline-none placeholder:text-muted-foreground/50"
-                placeholder="Agent name"
+                className="w-20 min-w-0 bg-transparent text-sm font-semibold outline-none placeholder:text-muted-foreground/50"
+                placeholder="Role ID"
+              />
+
+              {/* Display Name (friendly name for employees) */}
+              <input
+                type="text"
+                value={agent.displayName}
+                onChange={(e) =>
+                  onChange(i, { ...agent, displayName: e.target.value })
+                }
+                className="flex-1 min-w-0 bg-transparent text-xs text-primary outline-none placeholder:text-muted-foreground/40"
+                placeholder="Friendly name (e.g. Sophie)"
               />
 
               {/* Role */}

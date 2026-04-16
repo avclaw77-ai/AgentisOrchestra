@@ -63,6 +63,7 @@ export interface SetupDepartmentPayload {
 export interface SetupAgentPayload {
   id: string
   name: string
+  displayName?: string
   role: string
   model: string
 }
