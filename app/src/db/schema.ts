@@ -182,6 +182,7 @@ export const agents = pgTable(
     role: text("role").notNull(),
     status: text("status").notNull().default("idle"), // idle | active | thinking
     isCeo: boolean("is_ceo").default(false),
+    isSystemAgent: boolean("is_system_agent").default(false), // connector agents for external system integrations
     currentTask: text("current_task"),
     lastActive: timestamp("last_active"),
     heartbeatSchedule: text("heartbeat_schedule"), // cron expression, e.g. '0 * * * *'
@@ -207,6 +208,7 @@ export const agentConfigs = pgTable(
     guardrails: text("guardrails"), // rules the agent must follow
     dataSources: text("data_sources").array(), // knowledge base references
     reportsTo: text("reports_to"), // agent hierarchy
+    connectionConfig: text("connection_config"), // encrypted JSON for system connector agents (API URLs, credentials)
     budget: integer("budget"), // monthly cents cap
     isActive: boolean("is_active").default(true),
     createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -114,6 +114,7 @@ export interface Agent {
   role: string
   status: AgentStatus
   isCeo: boolean
+  isSystemAgent: boolean
   currentTask: string | null
   lastActive: string | null
   heartbeatSchedule: string | null
@@ -131,6 +132,7 @@ export interface AgentConfig {
   guardrails: string | null
   dataSources: string[]
   reportsTo: string | null
+  connectionConfig: string | null
   budget: number | null
   isActive: boolean
 }

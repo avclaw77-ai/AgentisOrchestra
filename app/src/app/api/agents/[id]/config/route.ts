@@ -69,6 +69,7 @@ export async function PATCH(
     "guardrails",
     "dataSources",
     "reportsTo",
+    "connectionConfig",
     "budget",
   ] as const
 
@@ -91,6 +92,7 @@ export async function PATCH(
   if ("guardrails" in updates) drizzleUpdates.guardrails = updates.guardrails
   if ("dataSources" in updates) drizzleUpdates.dataSources = updates.dataSources
   if ("reportsTo" in updates) drizzleUpdates.reportsTo = updates.reportsTo
+  if ("connectionConfig" in updates) drizzleUpdates.connectionConfig = updates.connectionConfig
   if ("budget" in updates) drizzleUpdates.budget = updates.budget
   drizzleUpdates.updatedAt = new Date()
 

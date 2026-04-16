@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import { Plug } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AGENT_COLORS, STATUS_COLORS } from "@/lib/constants"
 import type { Agent, AgentStatus } from "@/types"
@@ -104,6 +105,9 @@ export function AgentRoster({ agents, selectedAgent, onSelectAgent, compact, onA
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium truncate">{agent.displayName || agent.name}</span>
+                {agent.isSystemAgent && (
+                  <span title="System Connector"><Plug size={11} className="text-muted-foreground shrink-0" /></span>
+                )}
                 <StatusDot status={agent.status} />
               </div>
               {!compact && (

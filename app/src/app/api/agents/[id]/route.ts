@@ -38,6 +38,7 @@ export async function PATCH(
   if ("displayName" in body) updates.displayName = body.displayName
   if ("name" in body) updates.name = body.name
   if ("role" in body) updates.role = body.role
+  if ("isSystemAgent" in body) updates.isSystemAgent = body.isSystemAgent
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 })

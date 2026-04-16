@@ -20,6 +20,7 @@ import { SkillLibrary } from "@/components/skill-library"
 import { DecisionLog } from "@/components/decision-log"
 import { ActivityLog } from "@/components/activity-log"
 import { TeamManager } from "@/components/team-manager"
+import { ConnectorLibrary } from "@/components/connector-library"
 import type {
   Agent,
   AgentConfig,
@@ -85,7 +86,7 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState<string>("")
 
   // Settings sub-tab
-  const [settingsTab, setSettingsTab] = useState<"general" | "team" | "approvals" | "skills" | "decisions" | "activity" | "export">("general")
+  const [settingsTab, setSettingsTab] = useState<"general" | "team" | "connectors" | "approvals" | "skills" | "decisions" | "activity" | "export">("general")
 
   // Company general form state
   const [companyName, setCompanyName] = useState("")
@@ -960,6 +961,7 @@ export default function DashboardPage() {
               [
                 { key: "general", label: "General" },
                 { key: "team", label: "Team" },
+                { key: "connectors", label: "Connectors" },
                 { key: "activity", label: "Activity" },
                 { key: "decisions", label: "Decisions" },
                 { key: "approvals", label: "Approvals" },
@@ -1027,6 +1029,10 @@ export default function DashboardPage() {
 
           {settingsTab === "team" && (
             <TeamManager departments={departments} />
+          )}
+
+          {settingsTab === "connectors" && (
+            <ConnectorLibrary departments={departments} onConnectorCreated={() => fetchData()} />
           )}
 
           {settingsTab === "activity" && (
