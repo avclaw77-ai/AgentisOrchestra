@@ -4,6 +4,7 @@ import cors from "cors"
 import { SessionManager } from "./session-manager.js"
 import { MODEL_REGISTRY, type Provider } from "./models.js"
 import * as db from "./db.js"
+import { initCostTracker } from "./cost-tracker.js"
 import { heartbeatEngine } from "./heartbeat.js"
 
 const PORT = parseInt(process.env.PORT || "3847", 10)
@@ -15,6 +16,7 @@ const KEEPALIVE_MS = 15_000
 // =============================================================================
 
 db.initDb()
+if (process.env.DATABASE_URL) initCostTracker(process.env.DATABASE_URL)
 db.resetAllAgentsIdle()
 heartbeatEngine.start(10_000) // 10-second tick interval
 

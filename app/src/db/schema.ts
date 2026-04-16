@@ -19,6 +19,7 @@ export const company = pgTable("company", {
   mission: text("mission"),
   locale: text("locale").notNull().default("en"), // "en" | "fr"
   settings: jsonb("settings").default({}),
+  budgetMonthlyCents: integer("budget_monthly_cents"), // company-wide budget
   setupCompletedAt: timestamp("setup_completed_at"), // NULL = setup not done
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -34,6 +35,7 @@ export const departments = pgTable("departments", {
   description: text("description"),
   color: text("color").default("#3b82f6"),
   template: text("template"), // "engineering", "research", etc.
+  budgetMonthlyCents: integer("budget_monthly_cents"), // per-department budget
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
@@ -452,6 +454,82 @@ export const heartbeatRuns = pgTable(
     index("heartbeat_runs_agent_started_idx").on(t.agentId, t.startedAt),
     index("heartbeat_runs_status_idx").on(t.status),
   ]
+)
+
+// =============================================================================
+// COST TRACKING -- Budget enforcement & ROI
+// =============================================================================
+
+export const costEvents = pgTable(
+  "cost_events",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    departmentId: text("department_id").references(() => departments.id, {
+      onDelete: "set null",
+    }),
+    agentId: text("agent_id")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
+    runId: text("run_id").references(() => heartbeatRuns.id, {
+      onDelete: "set null",
+    }),
+    modelId: text("model_id").notNull(),
+    provider: text("provider").notNull(), // 'claude-cli' | 'openrouter' | 'perplexity' | 'openai'
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    cachedInputTokens: integer("cached_input_tokens").default(0),
+    costCents: integer("cost_cents").notNull().default(0),
+    taskId: text("task_id"),
+    billingType: text("billing_type").default("metered"), // 'metered' | 'subscription'
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => [
+    index("cost_events_department_created_idx").on(t.departmentId, t.createdAt),
+    index("cost_events_agent_created_idx").on(t.agentId, t.createdAt),
+  ]
+)
+
+export const budgetPolicies = pgTable(
+  "budget_policies",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    scopeType: text("scope_type").notNull(), // 'company' | 'department' | 'agent'
+    scopeId: text("scope_id"), // NULL for company scope
+    amountCents: integer("amount_cents").notNull(),
+    warnPercent: integer("warn_percent").default(80),
+    hardStopEnabled: boolean("hard_stop_enabled").default(true),
+    windowKind: text("window_kind").default("calendar_month"), // 'calendar_month' | 'lifetime'
+    isActive: boolean("is_active").default(true),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("budget_policies_scope_idx").on(
+      t.scopeType,
+      t.scopeId,
+      t.windowKind
+    ),
+  ]
+)
+
+export const budgetIncidents = pgTable(
+  "budget_incidents",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    policyId: integer("policy_id")
+      .notNull()
+      .references(() => budgetPolicies.id, { onDelete: "cascade" }),
+    scopeType: text("scope_type").notNull(),
+    scopeId: text("scope_id"),
+    thresholdType: text("threshold_type").notNull(), // 'warn' | 'hard_stop'
+    amountLimit: integer("amount_limit").notNull(),
+    amountObserved: integer("amount_observed").notNull(),
+    status: text("status").notNull().default("open"), // 'open' | 'resolved' | 'dismissed'
+    resolvedAt: timestamp("resolved_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => [index("budget_incidents_policy_idx").on(t.policyId)]
 )
 
 export const agentWakeupRequests = pgTable(

@@ -8,6 +8,7 @@ import { KanbanBoard } from "@/components/kanban-board"
 import { TaskDetail } from "@/components/task-detail"
 import { CreateTaskDialog } from "@/components/create-task-dialog"
 import { ModelConfig } from "@/components/model-config"
+import { CostDashboard } from "@/components/cost-dashboard"
 import type { Agent, Task, TaskComment, TaskStatus, Department } from "@/types"
 
 interface CompanyInfo {
@@ -264,6 +265,12 @@ export default function DashboardPage() {
       {view === "models" && (
         <div className="p-6 max-w-5xl">
           <ModelConfig />
+        </div>
+      )}
+
+      {view === "costs" && (
+        <div className="p-6 max-w-5xl">
+          <CostDashboard />
         </div>
       )}
 

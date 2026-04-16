@@ -308,3 +308,59 @@ export interface SchedulePreset {
   cron: string
   description: string
 }
+
+// =============================================================================
+// Cost Tracking & Budgets
+// =============================================================================
+
+export interface CostEvent {
+  id: number
+  departmentId: string | null
+  agentId: string
+  runId: string | null
+  modelId: string
+  provider: string
+  inputTokens: number
+  outputTokens: number
+  cachedInputTokens: number
+  costCents: number
+  taskId: string | null
+  billingType: string
+  createdAt: string
+}
+
+export interface BudgetPolicy {
+  id?: number
+  scopeType: "company" | "department" | "agent"
+  scopeId: string | null
+  amountCents: number
+  warnPercent: number
+  hardStopEnabled: boolean
+  windowKind: string
+  isActive: boolean
+}
+
+export interface BudgetIncident {
+  id: number
+  policyId: number
+  scopeType: string
+  scopeId: string | null
+  thresholdType: "warn" | "hard_stop"
+  amountLimit: number
+  amountObserved: number
+  status: "open" | "resolved" | "dismissed"
+  createdAt: string
+}
+
+export interface CostSummary {
+  totalCents: number
+  cliCents: number
+  apiCents: number
+  cliSavings: number
+  byAgent: Array<{ agentId: string; agentName: string; cents: number; runs: number }>
+  byModel: Array<{ modelId: string; cents: number; tokens: number }>
+  byDay: Array<{ date: string; cents: number }>
+  byDepartment: Array<{ departmentId: string; name: string; cents: number }>
+  tasksCompleted: number
+  totalRuns: number
+}

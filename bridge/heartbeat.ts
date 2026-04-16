@@ -13,6 +13,7 @@ import { randomUUID } from "node:crypto"
 import { routeModel, type RouteRequest } from "./router.js"
 import { executeWithProvider, type StreamCallbacks } from "./providers.js"
 import * as db from "./db.js"
+import { calculateCost, recordCostEvent, checkBudget } from "./cost-tracker.js"
 import type { TaskType } from "./models.js"
 
 // =============================================================================
@@ -97,7 +98,29 @@ class HeartbeatEngine {
           continue
         }
 
-        // 4. Create the run
+        // 4. Budget check before creating the run
+        const budgetResult = await checkBudget(wakeup.agent_id, wakeup.department_id)
+        if (!budgetResult.allowed) {
+          const runId = `run-${randomUUID()}`
+          await db.createHeartbeatRun({
+            id: runId,
+            departmentId: wakeup.department_id,
+            agentId: wakeup.agent_id,
+            wakeupSource: wakeup.source,
+            prompt: this.extractPrompt(wakeup),
+          })
+          await db.claimWakeup(wakeup.id, runId)
+          await db.claimRun(runId)
+          await db.finalizeRun(runId, {
+            status: "cancelled",
+            error: `Budget exceeded (${budgetResult.blockedBy} limit: ${budgetResult.limitCents}c, used: ${budgetResult.usedCents}c)`,
+          })
+          await db.finishWakeup(wakeup.id)
+          console.log(`[heartbeat] ${wakeup.agent_id} blocked by ${budgetResult.blockedBy} budget`)
+          continue
+        }
+
+        // 5. Create the run
         const runId = `run-${randomUUID()}`
         await db.createHeartbeatRun({
           id: runId,
@@ -107,17 +130,17 @@ class HeartbeatEngine {
           prompt: this.extractPrompt(wakeup),
         })
 
-        // 5. Claim the wakeup
+        // 6. Claim the wakeup
         await db.claimWakeup(wakeup.id, runId)
 
-        // 6. Claim the run
+        // 7. Claim the run
         await db.claimRun(runId)
 
-        // 7. Mark agent as active
+        // 8. Mark agent as active
         this.activeAgents.add(wakeup.agent_id)
         await db.updateAgentStatus(wakeup.agent_id, "active", this.extractPrompt(wakeup))
 
-        // 8. Execute (non-blocking -- runs in background per agent)
+        // 9. Execute (non-blocking -- runs in background per agent)
         this.executeRun(runId, wakeup).catch((err) => {
           console.error(`[heartbeat] Run ${runId} failed:`, err)
         })
@@ -200,17 +223,45 @@ class HeartbeatEngine {
 
       // Finalize: succeeded
       const durationMs = Date.now() - startTime
+
+      // Estimate tokens from result length (rough heuristic until providers return counts)
+      const estimatedInputTokens = Math.ceil((prompt?.length || 0) / 4)
+      const estimatedOutputTokens = Math.ceil(fullResult.length / 4)
+
+      // Calculate cost and record the event
+      const billingType = route.model.mode === "cli" ? "subscription" : "metered"
+      const { costCents, cliSavings } = calculateCost(
+        route.model.id,
+        estimatedInputTokens,
+        estimatedOutputTokens
+      )
+
       await db.finalizeRun(runId, {
         status: "succeeded",
-        inputTokens: 0, // TODO: extract from provider response when available
-        outputTokens: 0,
+        inputTokens: estimatedInputTokens,
+        outputTokens: estimatedOutputTokens,
+        costCents,
         modelId: route.model.id,
+      })
+
+      // Record cost event for tracking
+      await recordCostEvent({
+        departmentId: wakeup.department_id,
+        agentId,
+        runId,
+        modelId: route.model.id,
+        provider: route.model.provider,
+        inputTokens: estimatedInputTokens,
+        outputTokens: estimatedOutputTokens,
+        costCents,
+        billingType: billingType as "metered" | "subscription",
       })
 
       // Update runtime state
       await db.saveRuntimeState(agentId, null, { lastResult: fullResult }, {
-        inputTokens: 0,
-        outputTokens: 0,
+        inputTokens: estimatedInputTokens,
+        outputTokens: estimatedOutputTokens,
+        costCents,
       })
 
       // Save assistant message to chat
