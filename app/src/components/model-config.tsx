@@ -283,10 +283,10 @@ export function ModelConfig() {
                 {/* Capabilities */}
                 <div className="flex items-center gap-2 shrink-0">
                   {model.supportsVision && (
-                    <Eye size={14} className="text-muted-foreground" title="Vision" />
+                    <span title="Vision"><Eye size={14} className="text-muted-foreground" /></span>
                   )}
                   {model.supportsTools && (
-                    <Zap size={14} className="text-muted-foreground" title="Tools" />
+                    <span title="Tools"><Zap size={14} className="text-muted-foreground" /></span>
                   )}
                 </div>
               </div>
