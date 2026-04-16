@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Save, Plus, X as XIcon, Sparkles, Loader2 } from "lucide-react"
+import { X, Save, Plus, X as XIcon, Sparkles, Loader2, Play } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { AGENT_COLORS, STATUS_COLORS } from "@/lib/constants"
@@ -89,6 +89,24 @@ export function AgentProfile({
   // Runs state
   const [runs, setRuns] = useState<HeartbeatRun[]>([])
   const [runsLoaded, setRunsLoaded] = useState(false)
+  const [triggering, setTriggering] = useState(false)
+
+  async function handleTrigger() {
+    setTriggering(true)
+    try {
+      const res = await fetch(`/api/agents/${agent.id}/trigger`, { method: "POST" })
+      if (res.ok) {
+        toast.success(`${agent.displayName || agent.name} triggered -- running now`)
+      } else {
+        const data = await res.json()
+        toast.error(data.error || "Failed to trigger agent")
+      }
+    } catch {
+      toast.error("Failed to trigger agent")
+    } finally {
+      setTriggering(false)
+    }
+  }
 
   // Runtime stats
   const [runtimeStats, setRuntimeStats] = useState<{
@@ -258,16 +276,30 @@ export function AgentProfile({
                     {dept.name}
                   </p>
                 )}
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <div
+                <div className="flex items-center gap-3 mt-2">
+                  <div className="flex items-center gap-1.5">
+                    <div
+                      className={cn(
+                        "w-2 h-2 rounded-full",
+                        agent.status === "active" && "agent-pulse",
+                        agent.status === "thinking" && "thinking-pulse"
+                      )}
+                      style={{ backgroundColor: STATUS_COLORS[agent.status] }}
+                    />
+                    <span className="text-xs text-muted-foreground capitalize">{agent.status}</span>
+                  </div>
+                  <button
+                    onClick={handleTrigger}
+                    disabled={triggering || agent.status === "active"}
                     className={cn(
-                      "w-2 h-2 rounded-full",
-                      agent.status === "active" && "agent-pulse",
-                      agent.status === "thinking" && "thinking-pulse"
+                      "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors",
+                      "bg-primary/10 text-primary hover:bg-primary/20",
+                      (triggering || agent.status === "active") && "opacity-50 cursor-not-allowed"
                     )}
-                    style={{ backgroundColor: STATUS_COLORS[agent.status] }}
-                  />
-                  <span className="text-xs text-muted-foreground capitalize">{agent.status}</span>
+                  >
+                    {triggering ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+                    {triggering ? "Running..." : "Run Now"}
+                  </button>
                 </div>
               </div>
             </div>

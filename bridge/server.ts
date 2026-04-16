@@ -352,6 +352,15 @@ const server = http.createServer((req, res) => {
           onToolUse: (tool: string, input: unknown) => {
             if (!cancelled) send("tool_use", { tool, input })
           },
+          onToolResult: (tool: string, output: unknown) => {
+            if (!cancelled) send("tool_result", { tool, output })
+          },
+          onThinking: (text: string) => {
+            if (!cancelled) send("thinking", { text })
+          },
+          onSystem: (text: string) => {
+            if (!cancelled) send("system", { text })
+          },
           onComplete: (result: string) => {
             if (!cancelled) send("done", { result })
           },

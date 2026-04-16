@@ -14,6 +14,9 @@ import type { Provider } from "./models.js"
 export interface StreamCallbacks {
   onToken: (token: string) => void
   onToolUse: (tool: string, input: unknown) => void
+  onToolResult?: (tool: string, output: unknown) => void
+  onThinking?: (text: string) => void
+  onSystem?: (text: string) => void
   onComplete: (result: string) => void
   onError: (error: string) => void
 }
@@ -67,12 +70,19 @@ export async function executeCLI(
       proc.kill("SIGTERM")
     })
 
+    let lineBuf = ""
+
     proc.stdout.on("data", (chunk: Buffer) => {
-      const text = chunk.toString()
-      // Parse stream-json lines
-      for (const line of text.split("\n").filter(Boolean)) {
+      lineBuf += chunk.toString()
+      const lines = lineBuf.split("\n")
+      lineBuf = lines.pop() || "" // keep incomplete last line in buffer
+
+      for (const line of lines) {
+        if (!line.trim()) continue
         try {
           const event = JSON.parse(line)
+
+          // Assistant message content (text + tool use blocks)
           if (event.type === "assistant" && event.message?.content) {
             for (const block of event.message.content) {
               if (block.type === "text") {
@@ -82,16 +92,43 @@ export async function executeCLI(
               if (block.type === "tool_use") {
                 cb.onToolUse(block.name, block.input)
               }
+              if (block.type === "thinking") {
+                cb.onThinking?.(block.thinking || block.text || "")
+              }
             }
           }
-          // stream-json "result" events
+
+          // Content block delta (streaming tokens)
+          if (event.type === "content_block_delta" && event.delta) {
+            if (event.delta.type === "text_delta" && event.delta.text) {
+              cb.onToken(event.delta.text)
+              fullResult += event.delta.text
+            }
+            if (event.delta.type === "thinking_delta" && event.delta.thinking) {
+              cb.onThinking?.(event.delta.thinking)
+            }
+          }
+
+          // Tool results
+          if (event.type === "tool_result") {
+            cb.onToolResult?.(event.tool || event.name || "tool", event.output || event.content || "")
+          }
+
+          // System/info messages
+          if (event.type === "system" && event.message) {
+            cb.onSystem?.(event.message)
+          }
+
+          // Final result
           if (event.type === "result" && event.result) {
             fullResult = event.result
           }
         } catch {
-          // Not JSON -- might be a partial line, raw token output
-          cb.onToken(line)
-          fullResult += line
+          // Not JSON -- raw output, still forward it
+          if (line.trim()) {
+            cb.onToken(line)
+            fullResult += line
+          }
         }
       }
     })

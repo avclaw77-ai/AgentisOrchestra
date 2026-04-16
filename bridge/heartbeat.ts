@@ -37,6 +37,9 @@ interface PendingExecution {
   reject: (err: Error) => void
   onToken?: (token: string) => void
   onToolUse?: (tool: string, input: unknown) => void
+  onToolResult?: (tool: string, output: unknown) => void
+  onThinking?: (text: string) => void
+  onSystem?: (text: string) => void
   onComplete?: (result: string) => void
   onError?: (error: string) => void
   onModelSelected?: (modelId: string, reason: string) => void
@@ -209,6 +212,15 @@ class HeartbeatEngine {
         onToolUse: (tool, input) => {
           pending?.onToolUse?.(tool, input)
         },
+        onToolResult: (tool, output) => {
+          pending?.onToolResult?.(tool, output)
+        },
+        onThinking: (text) => {
+          pending?.onThinking?.(text)
+        },
+        onSystem: (text) => {
+          pending?.onSystem?.(text)
+        },
         onComplete: (result) => {
           fullResult = result
           pending?.onComplete?.(result)
@@ -376,6 +388,9 @@ class HeartbeatEngine {
     callbacks?: {
       onToken?: (token: string) => void
       onToolUse?: (tool: string, input: unknown) => void
+      onToolResult?: (tool: string, output: unknown) => void
+      onThinking?: (text: string) => void
+      onSystem?: (text: string) => void
       onComplete?: (result: string) => void
       onError?: (error: string) => void
       onModelSelected?: (modelId: string, reason: string) => void
@@ -440,6 +455,9 @@ class HeartbeatEngine {
       reject: () => {},
       onToken: callbacks?.onToken,
       onToolUse: callbacks?.onToolUse,
+      onToolResult: callbacks?.onToolResult,
+      onThinking: callbacks?.onThinking,
+      onSystem: callbacks?.onSystem,
       onComplete: callbacks?.onComplete,
       onError: callbacks?.onError,
       onModelSelected: callbacks?.onModelSelected,

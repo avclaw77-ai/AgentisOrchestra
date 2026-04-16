@@ -850,6 +850,8 @@ export default function DashboardPage() {
             <ChatPanel
               channel={selectedAgent}
               agentName={agents.find((a) => a.id === selectedAgent)?.name || "Agent"}
+              agentDisplayName={agents.find((a) => a.id === selectedAgent)?.displayName || undefined}
+              departmentId={selectedDepartment}
               fullHeight
             />
           </div>
