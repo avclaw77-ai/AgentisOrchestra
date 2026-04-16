@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DEPARTMENT_TEMPLATES, getTemplate } from "@/lib/templates"
@@ -216,6 +216,16 @@ export default function SetupPage() {
       return false
     }
   }, [])
+
+  // Auto-test Claude CLI when providers step loads
+  useEffect(() => {
+    if (step === 4) {
+      const cli = providers.find((p) => p.provider === "claude-cli")
+      if (cli && cli.isValid === null && !cli.testing) {
+        handleTestProvider("claude-cli", "")
+      }
+    }
+  }, [step, providers, handleTestProvider])
 
   const handleKeyChange = useCallback((provider: string, apiKey: string) => {
     setProviders((prev) =>
