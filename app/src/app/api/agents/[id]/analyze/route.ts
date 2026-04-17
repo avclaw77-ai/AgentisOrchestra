@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
+import { getSessionUser } from "@/lib/auth"
 
 // POST /api/agents/[id]/analyze -- AI-generate persona + config from NL description
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const { id } = await params
   const { description } = await req.json()
 

@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { chatMessages } from "@/db/schema"
 import { eq, desc, and, lt } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/chat/messages?channel=cio&limit=50&before=123
 export async function GET(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
   const channel = req.nextUrl.searchParams.get("channel")
   const limit = parseInt(req.nextUrl.searchParams.get("limit") || "50", 10)
   const before = req.nextUrl.searchParams.get("before")

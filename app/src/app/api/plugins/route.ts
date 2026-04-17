@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { BRIDGE_URL, BRIDGE_TOKEN } from "@/lib/constants"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/plugins -- proxy to bridge GET /plugins
 export async function GET() {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
   try {
     const res = await fetch(`${BRIDGE_URL}/plugins`, {
       headers: BRIDGE_TOKEN ? { Authorization: `Bearer ${BRIDGE_TOKEN}` } : {},
@@ -25,6 +28,9 @@ export async function GET() {
 
 // POST /api/plugins -- proxy restart: body { name: string }
 export async function POST(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const { name } = await req.json()
   if (!name) {
     return NextResponse.json({ error: "name required" }, { status: 400 })

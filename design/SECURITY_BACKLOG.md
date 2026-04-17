@@ -1,13 +1,13 @@
 # Security Backlog
 
-**Last updated**: 2026-04-16
-**Status**: Active -- items to address before public launch
+**Last updated**: 2026-04-17
+**Status**: All MEDIUM items fixed. 2 LOW items remaining (L1, L2).
 
 ---
 
-## MEDIUM Priority
+## MEDIUM Priority (ALL FIXED)
 
-### M1: Rate-limit `/api/setup/test-provider`
+### M1: Rate-limit `/api/setup/test-provider` -- FIXED
 
 **Risk**: This endpoint is in PUBLIC_PATHS (accessible pre-auth) and makes external API calls with user-supplied keys. An attacker could use it as a proxy to validate stolen API keys at no cost.
 
@@ -20,7 +20,7 @@
 
 ---
 
-### M2: Add `getSessionUser()` to remaining API routes
+### M2: Add `getSessionUser()` to remaining API routes -- FIXED
 
 **Risk**: These routes rely only on middleware cookie-presence check (edge runtime can't do DB validation). If an attacker sets an arbitrary cookie value, middleware passes but DB lookup fails gracefully. Defense-in-depth says we should validate at the route level too.
 
@@ -55,7 +55,7 @@
 
 ---
 
-### M3: ENCRYPTION_KEY validation on startup
+### M3: ENCRYPTION_KEY validation on startup -- FIXED
 
 **Risk**: If a user copies `.env.example` and forgets to replace the placeholder `REPLACE_ME_run_openssl_rand_hex_32`, the app will fail on first encrypt -- but the error message won't be obvious.
 
@@ -87,7 +87,7 @@
 
 ---
 
-### L3: CSP headers
+### L3: CSP headers -- FIXED
 
 **Risk**: No Content-Security-Policy headers are set. XSS protection relies entirely on React's built-in escaping.
 
@@ -97,10 +97,14 @@
 
 ---
 
-## Already Fixed (2026-04-16)
+## Already Fixed (2026-04-17)
 
 | Issue | Severity | Fix |
 |-------|----------|-----|
+| M1: test-provider rate limit | MEDIUM | 5 req/min per IP, in-memory rate limiter |
+| M2: Auth guards on 25 API routes | MEDIUM | `getSessionUser()` defense-in-depth on all handlers |
+| M3: ENCRYPTION_KEY validation | MEDIUM | Startup check with clear error messages + generation command |
+| L3: CSP headers | LOW | Full CSP + X-Frame-Options + nosniff via middleware |
 | API routes missing auth (agents, depts, chat, users, company) | HIGH | Added `getSessionUser()` + role checks |
 | Bridge CORS open to all origins | HIGH | Restricted to `APP_URL` |
 | PostgreSQL port exposed to 0.0.0.0 | HIGH | Bound to 127.0.0.1 |

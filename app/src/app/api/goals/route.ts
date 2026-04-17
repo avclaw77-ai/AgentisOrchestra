@@ -3,9 +3,12 @@ import { db } from "@/db"
 import { goals, tasks, activityLog } from "@/db/schema"
 import { eq, desc, and, isNull } from "drizzle-orm"
 import { randomUUID } from "node:crypto"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/goals?departmentId=eng
 export async function GET(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
   const departmentId = req.nextUrl.searchParams.get("departmentId")
 
   const conditions = []
@@ -24,6 +27,9 @@ export async function GET(req: NextRequest) {
 
 // POST /api/goals -- create a new goal
 export async function POST(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const body = await req.json()
   const { title, description, departmentId, parentId, ownerAgentId } = body
 
@@ -60,6 +66,9 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/goals -- update a goal
 export async function PATCH(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const body = await req.json()
   const { id, title, description, status, ownerAgentId } = body
 
@@ -96,6 +105,9 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE /api/goals?id=goal-xxx
 export async function DELETE(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const id = req.nextUrl.searchParams.get("id")
   if (!id) {
     return NextResponse.json({ error: "id is required" }, { status: 400 })

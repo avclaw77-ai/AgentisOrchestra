@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { tasks, taskComments, activityLog } from "@/db/schema"
 import { eq, asc, desc, and, isNull } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/tasks/[id] -- single task with comments
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const { id } = await params
 
   const [task] = await db.select().from(tasks).where(eq(tasks.id, id))
@@ -29,6 +33,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const { id } = await params
   const body = await req.json()
 
@@ -95,6 +102,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const { id } = await params
   const body = await req.json()
   const { action, runId } = body

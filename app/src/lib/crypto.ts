@@ -4,13 +4,52 @@ const ALGORITHM = "aes-256-gcm"
 const IV_LENGTH = 12
 const TAG_LENGTH = 16
 
+// ---------------------------------------------------------------------------
+// Startup validation: catch misconfigured keys early with a clear message
+// ---------------------------------------------------------------------------
+function validateEncryptionKeyFormat(): void {
+  const key = process.env.ENCRYPTION_KEY
+  if (!key) {
+    console.error(
+      "\n[FATAL] ENCRYPTION_KEY is not set.\n" +
+      "Generate one with: openssl rand -hex 32\n" +
+      "Then add it to your .env file.\n"
+    )
+    return
+  }
+  if (key === "REPLACE_ME_run_openssl_rand_hex_32") {
+    console.error(
+      "\n[FATAL] ENCRYPTION_KEY is still the placeholder value.\n" +
+      "Generate a real key: openssl rand -hex 32\n" +
+      "Then replace the value in your .env file.\n"
+    )
+    return
+  }
+  if (key.length !== 64 && key.length !== 32) {
+    console.error(
+      `\n[FATAL] ENCRYPTION_KEY has invalid length (${key.length}).\n` +
+      "Expected: 64 hex characters (32 bytes).\n" +
+      "Generate one with: openssl rand -hex 32\n"
+    )
+    return
+  }
+  if (key.length === 64 && !/^[0-9a-fA-F]+$/.test(key)) {
+    console.error(
+      "\n[FATAL] ENCRYPTION_KEY contains non-hex characters.\n" +
+      "Generate a valid key: openssl rand -hex 32\n"
+    )
+  }
+}
+
+// Run validation on module load (server start)
+validateEncryptionKeyFormat()
+
 function getEncryptionKey(): Buffer {
   const key = process.env.ENCRYPTION_KEY
-  if (!key) throw new Error("ENCRYPTION_KEY environment variable is required")
-  // Accept hex (64 chars) or raw (32 chars)
+  if (!key) throw new Error("ENCRYPTION_KEY environment variable is required. Run: openssl rand -hex 32")
   if (key.length === 64) return Buffer.from(key, "hex")
   if (key.length === 32) return Buffer.from(key, "utf-8")
-  throw new Error("ENCRYPTION_KEY must be 32 bytes (64 hex chars or 32 raw chars)")
+  throw new Error("ENCRYPTION_KEY must be 32 bytes (64 hex chars or 32 raw chars). Run: openssl rand -hex 32")
 }
 
 /** Encrypt a plaintext string. Returns "iv:ciphertext:tag" in hex. */

@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { approvalComments } from "@/db/schema"
 import { eq, asc } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/approvals/[id]/comments
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const { id } = await params
   const approvalId = parseInt(id, 10)
   if (isNaN(approvalId)) {
@@ -28,6 +32,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const { id } = await params
   const approvalId = parseInt(id, 10)
   if (isNaN(approvalId)) {

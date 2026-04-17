@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { tasks, activityLog } from "@/db/schema"
 import { eq, desc, isNull, and, sql } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/tasks?departmentId=eng&status=backlog&assignedTo=dev&project=orchestra
 export async function GET(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
   const departmentId = req.nextUrl.searchParams.get("departmentId")
   const status = req.nextUrl.searchParams.get("status")
   const assignedTo = req.nextUrl.searchParams.get("assignedTo")
@@ -38,6 +41,9 @@ export async function GET(req: NextRequest) {
 
 // POST /api/tasks -- create a new task
 export async function POST(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const body = await req.json()
   const {
     title,
@@ -109,6 +115,9 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/tasks -- update a task
 export async function PATCH(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const body = await req.json()
   const { id, title, status, assignedTo, priority, phase, notes, project } = body
 
@@ -187,6 +196,9 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE /api/tasks?id=TASK-001
 export async function DELETE(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const id = req.nextUrl.searchParams.get("id")
   if (!id) {
     return NextResponse.json({ error: "id is required" }, { status: 400 })

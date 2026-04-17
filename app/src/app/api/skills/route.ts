@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { companySkills, activityLog } from "@/db/schema"
 import { eq, desc, and } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/skills?isActive=true
 export async function GET(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
   const isActive = req.nextUrl.searchParams.get("isActive")
 
   const conditions = []
@@ -23,6 +26,9 @@ export async function GET(req: NextRequest) {
 
 // POST /api/skills -- create a company skill
 export async function POST(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const body = await req.json()
   const { key, name, description, sourceType, sourceRef, definition } = body
 
@@ -63,6 +69,9 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/skills -- update a skill (bumps version)
 export async function PATCH(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const body = await req.json()
   const { id, name, description, sourceType, sourceRef, definition, isActive } =
     body

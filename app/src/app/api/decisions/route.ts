@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { decisions } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/decisions -- list decisions, newest first
 export async function GET(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
   const departmentId = req.nextUrl.searchParams.get("departmentId")
   const limit = parseInt(req.nextUrl.searchParams.get("limit") || "50", 10)
   const safeLimit = Math.min(limit, 200)

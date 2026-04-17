@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { approvalRequests, activityLog } from "@/db/schema"
 import { eq, desc, and } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/approvals?status=pending&departmentId=eng
 export async function GET(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
   const status = req.nextUrl.searchParams.get("status")
   const departmentId = req.nextUrl.searchParams.get("departmentId")
 
@@ -27,6 +30,9 @@ export async function GET(req: NextRequest) {
 
 // POST /api/approvals -- create an approval request
 export async function POST(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const body = await req.json()
   const {
     type,
@@ -75,6 +81,9 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/approvals -- approve/reject/request revision
 export async function PATCH(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const body = await req.json()
   const { id, status, decisionNote, decidedByUserId } = body
 

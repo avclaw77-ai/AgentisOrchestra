@@ -8,6 +8,7 @@ import {
   agents,
 } from "@/db/schema"
 import { eq, desc, asc } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 const BRIDGE_URL = process.env.BRIDGE_URL || "http://localhost:3847"
 
@@ -16,6 +17,9 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const { id } = await params
 
   const [routine] = await db.select().from(routines).where(eq(routines.id, id))
@@ -69,6 +73,9 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const { id } = await params
 
   const [routine] = await db.select().from(routines).where(eq(routines.id, id))

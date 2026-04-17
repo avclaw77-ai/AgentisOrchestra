@@ -9,11 +9,14 @@ import {
 } from "@/db/schema"
 import { eq, desc, and, count } from "drizzle-orm"
 import { randomUUID } from "node:crypto"
+import { getSessionUser } from "@/lib/auth"
 
 const BRIDGE_URL = process.env.BRIDGE_URL || "http://localhost:3847"
 
 // GET /api/routines?departmentId=eng
 export async function GET(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
   const departmentId = req.nextUrl.searchParams.get("departmentId")
 
   const conditions = []
@@ -59,6 +62,9 @@ export async function GET(req: NextRequest) {
 
 // POST /api/routines -- create routine with steps and triggers
 export async function POST(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const body = await req.json()
   const {
     name,
@@ -150,6 +156,9 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/routines -- update a routine
 export async function PATCH(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const body = await req.json()
   const { id, name, description, status, concurrencyPolicy, catchUpPolicy, maxDurationMs } = body
 
@@ -195,6 +204,9 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE /api/routines?id=routine-xxx
 export async function DELETE(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const id = req.nextUrl.searchParams.get("id")
   if (!id) {
     return NextResponse.json({ error: "id is required" }, { status: 400 })

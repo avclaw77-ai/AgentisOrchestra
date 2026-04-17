@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server"
 import { BRIDGE_URL, BRIDGE_TOKEN } from "@/lib/constants"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/models -- fetch model registry + provider status from bridge
 export async function GET() {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
   try {
     const res = await fetch(`${BRIDGE_URL}/models`, {
       headers: BRIDGE_TOKEN ? { Authorization: `Bearer ${BRIDGE_TOKEN}` } : {},

@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { activityLog } from "@/db/schema"
 import { eq, desc, and } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/activity?departmentId=eng&limit=20&action=task_created
 export async function GET(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
   const departmentId = req.nextUrl.searchParams.get("departmentId")
   const limit = parseInt(req.nextUrl.searchParams.get("limit") || "20", 10)
   const action = req.nextUrl.searchParams.get("action")

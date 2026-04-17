@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { heartbeatRuns, agents } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/agents/[id]/runs -- return paginated heartbeat runs (newest first)
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const { id } = await params
   const limit = parseInt(req.nextUrl.searchParams.get("limit") || "20", 10)
   const offset = parseInt(req.nextUrl.searchParams.get("offset") || "0", 10)

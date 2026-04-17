@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { budgetPolicies, budgetIncidents, costEvents } from "@/db/schema"
 import { eq, and, sql, gte, isNull } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/costs/budget -- all active policies with current spend
 export async function GET() {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
   try {
     const policies = await db.select().from(budgetPolicies).where(eq(budgetPolicies.isActive, true))
 
@@ -81,6 +84,9 @@ export async function GET() {
 
 // POST /api/costs/budget -- create a new budget policy
 export async function POST(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   try {
     const body = await req.json()
     const { scopeType, scopeId, amountCents, warnPercent, hardStopEnabled, windowKind } = body
@@ -111,6 +117,9 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/costs/budget -- update a budget policy
 export async function PATCH(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   try {
     const body = await req.json()
     const { id, amountCents, warnPercent, hardStopEnabled, isActive } = body

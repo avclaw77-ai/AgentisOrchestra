@@ -12,6 +12,33 @@ interface TestProviderResponse {
   models?: string[]
 }
 
+// ---------------------------------------------------------------------------
+// Rate limiter: 5 requests per minute per IP (in-memory, resets on restart)
+// ---------------------------------------------------------------------------
+const RATE_LIMIT = 5
+const RATE_WINDOW_MS = 60_000
+const rateBuckets = new Map<string, { count: number; resetAt: number }>()
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const bucket = rateBuckets.get(ip)
+  if (!bucket || now > bucket.resetAt) {
+    rateBuckets.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS })
+    return true
+  }
+  if (bucket.count >= RATE_LIMIT) return false
+  bucket.count++
+  return true
+}
+
+// Cleanup stale buckets every 5 minutes
+setInterval(() => {
+  const now = Date.now()
+  for (const [ip, bucket] of rateBuckets) {
+    if (now > bucket.resetAt) rateBuckets.delete(ip)
+  }
+}, 300_000).unref?.()
+
 /**
  * POST /api/setup/test-provider
  *
@@ -20,8 +47,19 @@ interface TestProviderResponse {
  * - openrouter: hits the models endpoint
  * - perplexity: makes a minimal completions call
  * - openai: lists models
+ *
+ * Rate-limited: 5 requests/minute per IP (pre-auth endpoint)
  */
 export async function POST(req: NextRequest) {
+  // Rate limit check
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown"
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { error: "Too many requests. Try again in a minute." },
+      { status: 429 }
+    )
+  }
+
   let body: TestProviderRequest
   try {
     body = await req.json()

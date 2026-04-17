@@ -13,9 +13,13 @@ import {
 } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { randomUUID } from "node:crypto"
+import { getSessionUser } from "@/lib/auth"
 
 // POST /api/company/import -- Import a company template JSON
 export async function POST(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const template = await req.json()
 
   if (!template || template.version !== 1) {

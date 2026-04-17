@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { agents, agentConfigs, agentConfigRevisions } from "@/db/schema"
 import { eq } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/agents/[id]/config -- return agent config
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const { id } = await params
 
   // Validate agent exists
@@ -39,6 +43,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
   const { id } = await params
   const body = await req.json()
 

@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { costEvents, agents, departments, tasks } from "@/db/schema"
 import { sql, eq, and, gte, lte, count, sum, countDistinct } from "drizzle-orm"
+import { getSessionUser } from "@/lib/auth"
 
 // GET /api/costs?departmentId=eng&from=2026-04-01&to=2026-04-30
 export async function GET(req: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
   const departmentId = req.nextUrl.searchParams.get("departmentId")
   const from = req.nextUrl.searchParams.get("from")
   const to = req.nextUrl.searchParams.get("to")
