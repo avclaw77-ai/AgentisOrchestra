@@ -142,6 +142,12 @@ export function TaskDetail({
                 </p>
               </div>
               <div>
+                <p className="text-xs text-muted-foreground">Due Date</p>
+                <p className={cn("font-medium mt-0.5", task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "done" && "text-red-500")}>
+                  {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "--"}
+                </p>
+              </div>
+              <div>
                 <p className="text-xs text-muted-foreground">Created</p>
                 <p className="font-medium mt-0.5">
                   {new Date(task.createdAt).toLocaleDateString()}

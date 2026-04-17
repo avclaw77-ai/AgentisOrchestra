@@ -1,265 +1,277 @@
 <p align="center">
-  <h1 align="center">AgentisOrchestra</h1>
-  <p align="center"><strong>Run your company with AI agent teams. Department by department.</strong></p>
-  <p align="center">
-    <a href="https://orchestra.agentislab.ai">Website</a> &middot;
-    <a href="docs/DEPLOYMENT.md">Deploy</a> &middot;
-    <a href="CONTRIBUTING.md">Contribute</a> &middot;
-    <a href="https://discord.gg/agentislab">Discord</a>
-  </p>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="app/public/logo-full.svg">
+    <img src="app/public/logo-full.svg" alt="AgentisOrchestra" height="48">
+  </picture>
+</p>
+
+<h3 align="center">Your AI team, orchestrated.</h3>
+
+<p align="center">
+  Department-by-department AI agents that work autonomously,<br>
+  chat with your team, and connect to your existing systems.
+</p>
+
+<p align="center">
+  <a href="https://github.com/AgentisLab/AgentisOrchestra/actions"><img src="https://img.shields.io/github/actions/workflow/status/AgentisLab/AgentisOrchestra/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square" alt="License"></a>
+  <a href="https://github.com/AgentisLab/AgentisOrchestra/releases"><img src="https://img.shields.io/badge/version-0.4.0-0284C7?style=flat-square" alt="Version"></a>
+  <a href="https://orchestra.agentislab.ai"><img src="https://img.shields.io/badge/website-orchestra.agentislab.ai-0284C7?style=flat-square" alt="Website"></a>
+</p>
+
+<p align="center">
+  <a href="https://orchestra.agentislab.ai">Website</a> &middot;
+  <a href="docs/DEPLOYMENT.md">Deploy Guide</a> &middot;
+  <a href="CONTRIBUTING.md">Contribute</a> &middot;
+  <a href="CHANGELOG.md">Changelog</a>
 </p>
 
 ---
 
-AgentisOrchestra is an open-source platform for building and running AI agent teams. You structure agents by department -- Engineering, Sales, Research, Operations -- and a CEO agent orchestrates across all of them.
+## One install. One company. AI agents that actually work.
+
+```bash
+git clone https://github.com/AgentisLab/AgentisOrchestra.git
+cd AgentisOrchestra
+make setup && make up
+# Open http://localhost:3000 -- setup wizard takes 2 minutes
+```
+
+AgentisOrchestra is an open-source platform for building and running AI agent teams. Structure agents by department -- Engineering, Sales, Research, Operations -- and a CEO agent orchestrates across all of them.
 
 Tell it about your company. It proposes a tailored agent team. You customize, activate, and watch them work.
 
-```bash
-git clone https://github.com/avclaw77-ai/AgentisOrchestra.git
-cd agentis-orchestra
-make setup && make up
-# Open http://localhost:3000
-```
+---
 
-**That's it.** The web-based setup wizard handles everything else.
+## What makes this different
+
+| Problem | How we solve it |
+|---------|----------------|
+| **"Which model should I use?"** | Model router picks the best model per task. CLI-first = free tokens via Pro subscription. |
+| **"My agents only work when I chat"** | Heartbeat engine. Agents wake on schedule, check for work, execute, report back. Autonomously. |
+| **"Setup takes days of config files"** | 7-step web wizard. Or give us your company URL -- we propose your entire team in 30 seconds. |
+| **"Agents burn my API budget"** | Budget cascade with auto-pause. Agent -> Department -> Company. Hard stop at limit. |
+| **"I can't track what agents do"** | Full audit trail. Every run logged with tokens, cost, duration, and output. |
+| **"It's just another chatbot"** | Kanban boards, goal trees, approval workflows, file management, routine automation. |
 
 ---
 
-## Why AgentisOrchestra?
-
-Most agent frameworks give you a blank canvas and say "figure it out." We give you a structured operating system for AI teams:
-
-| Problem | AgentisOrchestra |
-|---------|-----------------|
-| "Which model should I use?" | Model router picks the best model for each task. CLI-first = free tokens via Pro subscription. |
-| "How do I organize agents?" | Department-based hierarchy. CEO sees everything. Each department has its own agents, tasks, and budget. |
-| "My agents only work when I chat with them" | Heartbeat engine. Agents wake up on schedule, check for work, execute, and report back. Autonomously. |
-| "Setup takes days of config files" | 7-step web wizard. Or tell us your company URL and we propose your entire agent team in 30 seconds. |
-| "I can't track what agents are doing" | Full audit trail. Every heartbeat run logged with tokens, cost, duration, and output. |
-| "Agents go rogue and burn my API budget" | Budget enforcement with cascading limits. Agent -> department -> company. Auto-pause on hard stop. |
-
----
-
-## The Setup Experience
+## The setup experience
 
 No YAML. No config files. No CLI flags.
 
-1. **Choose your language** -- English or Quebec French
-2. **Create admin account** -- email + password
-3. **Tell us about your company** -- name, website, industry
-4. **We analyze your business** -- Perplexity researches your website, LLM proposes a tailored agent team with departments, roles, personas, and schedules
-5. **Connect AI providers** -- Claude CLI auto-detected, API keys tested live
-6. **Review and customize** -- accept the proposal or build from templates
-7. **Launch** -- dashboard loads with your agents ready to work
+1. **Choose language** -- English or Quebec French
+2. **Create admin** -- email + password
+3. **Describe your company** -- name, website, industry
+4. **AI proposes your team** -- Perplexity researches your site, LLM generates departments, agents, personas, schedules
+5. **Connect providers** -- Claude CLI auto-detected, API keys tested live
+6. **Review and launch** -- accept or customize from templates
+7. **Dashboard loads** -- agents ready to work
 
-*No other orchestration platform does step 4.* This is what makes prospects say "I need this."
+*Step 4 is what makes prospects say "I need this."* No other platform does it.
 
 ---
 
 ## Features
 
-**Agent Management**
-- Department-based organization with CEO cross-department view
-- Agent personas, model selection, and heartbeat scheduling per agent
-- Config versioning with full audit trail
+<table>
+<tr>
+<td width="50%" valign="top">
 
-**Autonomous Execution**
-- Heartbeat engine: agents wake on cron, webhook, manual trigger, or chat
-- Run lifecycle tracking: queued -> executing -> succeeded/failed
-- Session persistence across Docker restarts
+### Agent Management
+- Department-based org with CEO cross-department view
+- Per-agent personas, models, guardrails, budgets
+- Display names for change management
+- Pause/resume from dashboard
+
+### Autonomous Execution
+- Heartbeat engine: cron, webhook, manual, or chat
+- Run lifecycle: queued -> executing -> succeeded/failed
 - Atomic task checkout prevents double-work
+- Session persistence across restarts
 
-**Multi-Model Intelligence**
-- Claude CLI (Pro subscription -- flat cost, unlimited tokens)
-- OpenRouter (100+ models: GPT, Gemini, Llama, DeepSeek, Qwen)
-- Perplexity (web search with citations)
-- OpenAI (direct API)
-- Smart router picks best model per task type. CLI-first = cost control.
+### Multi-Model Intelligence
+- **Claude CLI** -- Pro subscription, flat cost
+- **OpenRouter** -- 100+ models (GPT, Gemini, Llama, DeepSeek)
+- **Perplexity** -- web search with citations
+- **OpenAI** -- direct API access
+- Smart router picks best model per task type
 
-**Workflow Automation**
-- Named routines with cron/webhook/manual triggers
-- Multi-step cross-department chains (Research -> Build -> Review)
-- Concurrency and catch-up policies
-- Natural language schedule builder ("Every weekday at 9am")
+</td>
+<td width="50%" valign="top">
 
-**Cost Control**
+### Workflow & Tasks
+- Kanban board with drag-and-drop
+- Due dates, priorities, phases, assignees
+- Multi-step routines across departments
+- Natural language scheduling ("Every weekday at 9am")
+- Global search (Cmd+K)
+
+### Cost Control & Governance
 - Per-run token and cost tracking
 - Budget cascade: agent -> department -> company
-- Soft alerts at 80%, hard stop at 100%
-- ROI dashboard: tasks completed, hours saved, CLI savings
-
-**Governance**
-- Goal hierarchy: company mission -> department goals -> tasks
+- Goal hierarchy with progress tracking
 - Approval workflows with threaded comments
-- Versioned skill library
-- Company export/import as portable templates
+- Full decision and activity audit logs
 
-**Extensibility**
-- MCP server with 21 tools for external integration
+### Integration & Extensibility
+- 10 pre-built connector templates (Slack, HubSpot, GitHub, SMTP...)
+- MCP server with 21 tools
 - Plugin system with Worker thread isolation
-- Crash recovery with exponential backoff
+- Company config export/import as templates
+- File browser with upload and preview
 
-**Multi-User Teams**
-- Admin / member / viewer roles with department-scoped access
-- Multi-department access (one person can manage multiple departments)
-- CEO view for admins, filtered department view for members
-- Team management UI for inviting and managing users
-- Agent display names for change management ("Sophie" instead of "Dev Agent")
+</td>
+</tr>
+</table>
 
-**System Integration** (Phase 1)
-- Connector Agents plug into existing company systems (CRM, ERP, databases)
-- Configuration-driven -- no custom code per client
-- MCP tool servers for high-frequency integrations
-- Connector credentials encrypted alongside provider keys
-
-**Bilingual**
-- English and Quebec French natively
-- Not translated -- written for each language
+### Also includes
+- **Bilingual** -- English and Quebec French natively (not translated)
+- **Multi-user** -- Admin / member / viewer roles with department scoping
+- **Model Sandbox** -- test any model from the browser
+- **API Key management** -- AES-256-GCM encrypted, rotate from UI
+- **Keyboard shortcuts** -- Cmd+K search, Cmd+1-9 navigation
+- **Responsive** -- works on desktop and mobile
+- **Loading skeletons** -- polished initial load experience
 
 ---
 
 ## Architecture
 
-For CLI mode (Pro subscription), the bridge runs on the host for direct Claude CLI access:
-
 ```
-                    HTTPS (443)
-                        |
-                    [ Caddy ]           Reverse proxy + auto SSL
-                        |
-                    [ App :3000 ]       Next.js 15 -- UI + API
-                        |
-                    [ Bridge :3847 ]    Heartbeat + execution engine
-                   /    |    \
-            [ CLI ]  [ APIs ]  [ MCP :3848 ]    Model providers + tools
-                        |
-                   [ Postgres ]         34 tables, Drizzle ORM
-                        |
-                   [ Plugins ]          Worker-isolated extensions
+                HTTPS (443)
+                    |
+                [ Caddy ]             Reverse proxy + auto SSL
+                    |
+                [ App :3000 ]         Next.js 15 -- UI + API routes
+                    |
+                [ Bridge :3847 ]      Heartbeat engine + model routing
+               /    |    \
+        [ CLI ]  [ APIs ]  [ MCP ]    Claude, OpenRouter, Perplexity, OpenAI
+                    |
+               [ Postgres ]           34 tables, Drizzle ORM
 ```
 
-| Component | Stack |
-|-----------|-------|
-| Frontend | Next.js 15, React 19, Tailwind 4, TypeScript |
-| Execution | Node.js, Express, SSE streaming, heartbeat scheduler |
-| Database | PostgreSQL 16 + pgvector, Drizzle ORM |
-| Auth | scrypt password hashing, session cookies, AES-256-GCM key encryption |
-| Infra | Docker Compose, Makefile, Caddy, GitHub Actions CI/CD |
+| Layer | Stack |
+|-------|-------|
+| Frontend | Next.js 15, React 19, Tailwind CSS 4, TypeScript |
+| Execution | Node.js, Express 5, SSE streaming, heartbeat scheduler |
+| Database | PostgreSQL 16, Drizzle ORM, 34 tables |
+| Auth | scrypt hashing, httpOnly session cookies, AES-256-GCM encryption |
+| Infra | Docker Compose, Makefile, Caddy, GitHub Actions CI |
 
 ---
 
-## Quick Start
+## Quick start
 
 ### Docker (recommended)
 
 ```bash
-git clone https://github.com/avclaw77-ai/AgentisOrchestra.git
-cd agentis-orchestra
+git clone https://github.com/AgentisLab/AgentisOrchestra.git
+cd AgentisOrchestra
 make setup    # generates .env with random secrets
 make up       # starts app + bridge + postgres
 ```
 
-Open `http://localhost:3000`. Setup wizard takes 2 minutes.
+Open `http://localhost:3000`. The setup wizard handles the rest.
 
-### Local Development
+### Local development
 
 ```bash
-docker compose up -d db          # postgres only
-cd app && pnpm install && pnpm dev       # http://localhost:3000
-cd bridge && pnpm install && pnpm dev    # http://localhost:3847
+docker compose up -d db                    # postgres only
+cd app && pnpm install && pnpm dev         # http://localhost:3000
+cd bridge && pnpm install && pnpm dev      # http://localhost:3847
 ```
 
-### Production (VPS)
+### Production (VPS / Mac Mini)
 
 ```bash
-ssh root@your-server
-git clone ... /opt/agentis-orchestra && cd /opt/agentis-orchestra
-make setup && nano .env          # set DOMAIN + API keys
+git clone https://github.com/AgentisLab/AgentisOrchestra.git /opt/agentis-orchestra
+cd /opt/agentis-orchestra
+make setup && nano .env    # set DOMAIN, API keys
 docker compose -f docker-compose.prod.yml up -d
-# SSL auto-provisioned by Caddy. Done.
 ```
 
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full guide.
+SSL auto-provisioned by Caddy. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full guide including Mac Mini deployment with launchd.
 
 ---
 
-## Model Providers
+## Model providers
 
-| Provider | Mode | Cost | Best For |
+| Provider | Mode | Cost | Best for |
 |----------|------|------|----------|
 | Claude CLI | Pro subscription | Flat monthly | Primary workhorse (free tokens) |
 | OpenRouter | API key | Per-token | 100+ models, flexibility |
 | Perplexity | API key | Per-query | Research, web search |
-| OpenAI | API key | Per-token | GPT-4o, o3 |
+| OpenAI | API key | Per-token | GPT-4o, specific tasks |
 
-**Start with Claude CLI only.** Zero marginal cost. Add API keys later for specific models or research capability.
+**Start with Claude CLI only.** Zero marginal cost. Add API keys later for specific models or research.
 
 ---
 
-## Project Structure
+## Project structure
 
 ```
-agentis-orchestra/
-├── app/                     Next.js 15 frontend + API
-│   ├── src/app/             Pages + API routes
-│   ├── src/components/      React components (sidebar, kanban, chat...)
-│   ├── src/db/              Drizzle schema (34 tables)
-│   └── src/lib/             Utils, crypto, i18n, templates
-├── bridge/                  Execution engine
-│   ├── heartbeat.ts         Autonomous agent execution
-│   ├── scheduler.ts         Cron scheduling
-│   ├── router.ts            Multi-model routing
-│   ├── providers.ts         Claude CLI, OpenRouter, Perplexity, OpenAI
-│   ├── mcp/                 MCP server (21 tools)
-│   └── plugins/             Plugin loader + worker manager
-├── design/                  Prototypes + design system
-├── docs/                    Deployment guide
-├── plugins/                 Plugin directory (add yours here)
-├── scripts/                 Setup, backup, healthcheck
-├── docker-compose.yml       Development
-├── docker-compose.prod.yml  Production (Caddy + hardened)
-└── Makefile                 15 ops commands
+AgentisOrchestra/
+├── app/                       Next.js 15 frontend + API
+│   ├── src/app/api/           30+ API routes
+│   ├── src/components/        25+ React components
+│   ├── src/db/schema.ts       34 tables (Drizzle)
+│   └── src/lib/               Auth, crypto, i18n, connectors
+├── bridge/                    Execution engine
+│   ├── heartbeat.ts           Autonomous agent loop
+│   ├── providers.ts           Multi-model adapters
+│   ├── router.ts              Smart model routing
+│   └── mcp/                   MCP server (21 tools)
+├── design/                    Prototypes + specs
+├── docs/                      Deployment guides
+├── tests/                     E2E test suites
+├── docker-compose.yml         Development
+├── docker-compose.prod.yml    Production
+└── Makefile                   15 ops commands
 ```
 
 ---
 
-## Makefile Commands
+## Makefile commands
 
 ```bash
 make up          # Start all services
 make down        # Stop all services
 make logs        # Tail all logs
 make health      # Check service health
-make backup      # Database backup (gzipped, auto-prune)
+make backup      # Database backup (gzipped)
 make db-push     # Run schema migrations
 make db-shell    # psql into database
-make clean       # Nuclear reset (removes all data)
-make status      # Docker container status
+make clean       # Full reset (removes all data)
 ```
 
 ---
 
-## Built With
+## Built with
 
-[Next.js](https://nextjs.org) | [React 19](https://react.dev) | [Tailwind CSS 4](https://tailwindcss.com) | [Drizzle ORM](https://orm.drizzle.team) | [PostgreSQL](https://postgresql.org) | [Docker](https://docker.com) | [Lucide Icons](https://lucide.dev) | [TypeScript](https://typescriptlang.org)
+[Next.js 15](https://nextjs.org) &middot; [React 19](https://react.dev) &middot; [Tailwind CSS 4](https://tailwindcss.com) &middot; [Drizzle ORM](https://orm.drizzle.team) &middot; [PostgreSQL 16](https://postgresql.org) &middot; [Docker](https://docker.com) &middot; [TypeScript](https://typescriptlang.org)
 
 ---
 
-## Who Made This
+## Who built this
 
-[AgentisLab](https://agentislab.ai) -- a boutique AI firm in Quebec City, Canada. We don't advise on AI. We build it, run it, and ship it.
+**[AgentisLab](https://agentislab.ai)** -- a boutique AI firm in Quebec City, Canada. We don't advise on AI. We build it, run it, and ship it.
 
-AgentisOrchestra is the platform we use internally and deploy to clients. It's open-source because we believe the best way to show what we can do is to let you see it.
+AgentisOrchestra is the platform we use internally and deploy to clients. It's open-source because the best way to show what we can do is to let you see it.
 
-**Need help setting it up for your company?** [Talk to us](mailto:alex@agentislab.ai).
+**Want us to set it up for your company?** [alex@agentislab.ai](mailto:alex@agentislab.ai)
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, architecture guide, and PR process.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, architecture overview, and PR process.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
 
 ## License
 
-[MIT](LICENSE) -- AgentisLab 2026
+[Apache 2.0](LICENSE) -- AgentisLab 2026

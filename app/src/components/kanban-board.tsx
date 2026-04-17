@@ -1,9 +1,15 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useCallback } from "react"
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  type DropResult,
+} from "@hello-pangea/dnd"
 import { cn } from "@/lib/utils"
 import { TASK_COLUMNS } from "@/lib/constants"
-import { Lock, Plus, Circle, Search } from "lucide-react"
+import { Lock, Plus, Circle, Search, GripVertical, Calendar } from "lucide-react"
 import type { Task, Agent, TaskStatus } from "@/types"
 
 // ---------------------------------------------------------------------------
@@ -33,60 +39,91 @@ const PHASE_LABELS: Record<string, string> = {
 }
 
 // ---------------------------------------------------------------------------
-// Task card (inline)
+// Task card (draggable)
 // ---------------------------------------------------------------------------
 function TaskCard({
   task,
   agents,
   onClick,
+  index,
 }: {
   task: Task
   agents: Agent[]
   onClick: () => void
+  index: number
 }) {
   const agent = agents.find((a) => a.id === task.assignedTo)
 
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "w-full text-left rounded-lg border border-border bg-card px-3 py-2",
-        "hover:shadow-sm transition-shadow cursor-pointer",
-        "focus:outline-none focus:ring-2 focus:ring-primary/40"
-      )}
-    >
-      <div className="flex items-start gap-2">
-        <Circle
-          size={7}
-          className={cn("mt-1 shrink-0 fill-current", PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.medium)}
-        />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium leading-tight truncate">
-            {task.title}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            {agent && (
-              <span className="text-[11px] text-muted-foreground truncate">
-                {agent.displayName || agent.name}
-              </span>
-            )}
-            {task.phase && (
-              <span className="text-[10px] font-medium bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded">
-                {PHASE_LABELS[task.phase] || task.phase}
-              </span>
-            )}
-            {task.executionLockedAt && (
-              <Lock size={12} className="text-amber-500 shrink-0" />
-            )}
+    <Draggable draggableId={task.id} index={index}>
+      {(provided, snapshot) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          className={cn(
+            "w-full rounded-lg border border-border bg-card px-3 py-2 transition-shadow",
+            snapshot.isDragging
+              ? "shadow-lg ring-2 ring-primary/30"
+              : "hover:shadow-sm"
+          )}
+        >
+          <div className="flex items-start gap-2">
+            <div
+              {...provided.dragHandleProps}
+              className="mt-1 shrink-0 text-muted-foreground/50 hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+            >
+              <GripVertical size={14} />
+            </div>
+            <Circle
+              size={7}
+              className={cn(
+                "mt-1.5 shrink-0 fill-current",
+                PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.medium
+              )}
+            />
+            <button
+              onClick={onClick}
+              className="flex-1 min-w-0 text-left focus:outline-none"
+            >
+              <p className="text-sm font-medium leading-tight truncate">
+                {task.title}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                {agent && (
+                  <span className="text-[11px] text-muted-foreground truncate">
+                    {agent.displayName || agent.name}
+                  </span>
+                )}
+                {task.phase && (
+                  <span className="text-[10px] font-medium bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded">
+                    {PHASE_LABELS[task.phase] || task.phase}
+                  </span>
+                )}
+                {task.dueDate && (
+                  <span className={cn(
+                    "flex items-center gap-0.5 text-[10px]",
+                    new Date(task.dueDate) < new Date() && task.status !== "done"
+                      ? "text-red-500 font-medium"
+                      : "text-muted-foreground"
+                  )}>
+                    <Calendar size={10} />
+                    {new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </span>
+                )}
+                {task.executionLockedAt && (
+                  <Lock size={12} className="text-amber-500 shrink-0" />
+                )}
+              </div>
+            </button>
           </div>
         </div>
-      </div>
-    </button>
+      )}
+    </Draggable>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Kanban column
+// Kanban column (droppable)
 // ---------------------------------------------------------------------------
 function KanbanColumn({
   column,
@@ -108,41 +145,56 @@ function KanbanColumn({
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h3 className="text-sm font-medium text-foreground">
           {column.label}{" "}
-          <span className="text-muted-foreground font-normal">({tasks.length})</span>
+          <span className="text-muted-foreground font-normal">
+            ({tasks.length})
+          </span>
         </h3>
       </div>
-      <div className="flex-1 p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-200px)] md:max-h-[calc(100vh-260px)]">
-        {tasks.length === 0 ? (
+      <Droppable droppableId={column.key}>
+        {(provided, snapshot) => (
           <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
             className={cn(
-              "border border-dashed border-border rounded-lg p-6",
-              "flex items-center justify-center text-xs text-muted-foreground"
+              "flex-1 p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-200px)] md:max-h-[calc(100vh-260px)] transition-colors",
+              snapshot.isDraggingOver && "bg-primary/5"
             )}
           >
-            No tasks
+            {tasks.length === 0 && !snapshot.isDraggingOver ? (
+              <div
+                className={cn(
+                  "border border-dashed border-border rounded-lg p-6",
+                  "flex items-center justify-center text-xs text-muted-foreground"
+                )}
+              >
+                No tasks
+              </div>
+            ) : (
+              tasks.map((task, index) => (
+                <div key={task.id} className="relative">
+                  {isCeoView && task.departmentId && (
+                    <div
+                      className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full z-10"
+                      style={{
+                        backgroundColor:
+                          departmentColors[task.departmentId] || "#6b7280",
+                      }}
+                      title={task.departmentId}
+                    />
+                  )}
+                  <TaskCard
+                    task={task}
+                    agents={agents}
+                    onClick={() => onSelectTask(task.id)}
+                    index={index}
+                  />
+                </div>
+              ))
+            )}
+            {provided.placeholder}
           </div>
-        ) : (
-          tasks.map((task) => (
-            <div key={task.id} className="relative">
-              {isCeoView && task.departmentId && (
-                <div
-                  className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full z-10"
-                  style={{
-                    backgroundColor:
-                      departmentColors[task.departmentId] || "#6b7280",
-                  }}
-                  title={task.departmentId}
-                />
-              )}
-              <TaskCard
-                task={task}
-                agents={agents}
-                onClick={() => onSelectTask(task.id)}
-              />
-            </div>
-          ))
         )}
-      </div>
+      </Droppable>
     </div>
   )
 }
@@ -181,24 +233,35 @@ export function KanbanBoard({
   const filteredTasks = useMemo(() => {
     let result = tasks
 
-    // Search by title
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       result = result.filter((t) => t.title.toLowerCase().includes(q))
     }
 
-    // Filter by priority
     if (priorityFilter !== "all") {
       result = result.filter((t) => t.priority === priorityFilter)
     }
 
-    // Filter by assignee
     if (assigneeFilter !== "all") {
       result = result.filter((t) => t.assignedTo === assigneeFilter)
     }
 
     return result
   }, [tasks, searchQuery, priorityFilter, assigneeFilter])
+
+  const handleDragEnd = useCallback(
+    (result: DropResult) => {
+      const { destination, draggableId } = result
+      if (!destination) return
+
+      const newStatus = destination.droppableId as TaskStatus
+      const task = tasks.find((t) => t.id === draggableId)
+      if (!task || task.status === newStatus) return
+
+      onStatusChange(draggableId, newStatus)
+    },
+    [tasks, onStatusChange]
+  )
 
   return (
     <div>
@@ -219,7 +282,10 @@ export function KanbanBoard({
       {/* Search and filter bar */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
           <input
             type="text"
             value={searchQuery}
@@ -253,24 +319,30 @@ export function KanbanBoard({
         </select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {TASK_COLUMNS.map((col) => {
-          const colTasks = filteredTasks
-            .filter((t) => t.status === col.key)
-            .sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 2) - (PRIORITY_ORDER[b.priority] ?? 2))
-          return (
-            <KanbanColumn
-              key={col.key}
-              column={col}
-              tasks={colTasks}
-              agents={agents}
-              departmentColors={departmentColors}
-              isCeoView={isCeoView}
-              onSelectTask={onSelectTask}
-            />
-          )
-        })}
-      </div>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {TASK_COLUMNS.map((col) => {
+            const colTasks = filteredTasks
+              .filter((t) => t.status === col.key)
+              .sort(
+                (a, b) =>
+                  (PRIORITY_ORDER[a.priority] ?? 2) -
+                  (PRIORITY_ORDER[b.priority] ?? 2)
+              )
+            return (
+              <KanbanColumn
+                key={col.key}
+                column={col}
+                tasks={colTasks}
+                agents={agents}
+                departmentColors={departmentColors}
+                isCeoView={isCeoView}
+                onSelectTask={onSelectTask}
+              />
+            )
+          })}
+        </div>
+      </DragDropContext>
     </div>
   )
 }

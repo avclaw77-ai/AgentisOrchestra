@@ -322,6 +322,7 @@ export const tasks = pgTable(
     goalId: text("goal_id").references((): any => goals.id, {
       onDelete: "set null",
     }),
+    dueDate: timestamp("due_date"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

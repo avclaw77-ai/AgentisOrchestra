@@ -25,6 +25,8 @@ import { ConnectorLibrary } from "@/components/connector-library"
 import { FileBrowser } from "@/components/file-browser"
 import { ModelSandbox } from "@/components/model-sandbox"
 import { ProviderKeys } from "@/components/provider-keys"
+import { SearchModal } from "@/components/search-modal"
+import { DashboardSkeleton, KanbanSkeleton, ChatSkeleton } from "@/components/loading-skeleton"
 import type {
   Agent,
   AgentConfig,
@@ -106,6 +108,9 @@ export default function DashboardPage() {
   const [pwConfirm, setPwConfirm] = useState("")
   const [pwSaving, setPwSaving] = useState(false)
 
+  // Loading state
+  const [initialLoading, setInitialLoading] = useState(true)
+
   // Pending approval count for nav badge
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0)
 
@@ -114,6 +119,9 @@ export default function DashboardPage() {
   const [exportTemplateDesc, setExportTemplateDesc] = useState("")
   const [exportIndustryTag, setExportIndustryTag] = useState("Technology")
   const [exportAuthor, setExportAuthor] = useState("AgentisLab")
+
+  // Search modal
+  const [showSearch, setShowSearch] = useState(false)
 
   // Import preview state
   const [importPreview, setImportPreview] = useState<{
@@ -135,13 +143,14 @@ export default function DashboardPage() {
   // Keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Cmd+K or Ctrl+K -> focus chat (quick access)
+      // Cmd+K or Ctrl+K -> toggle global search
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault()
-        setView("chat")
+        setShowSearch((prev) => !prev)
+        return
       }
-      // Escape -> close panels
-      if (e.key === "Escape") {
+      // Escape -> close panels (search modal handles its own Escape)
+      if (e.key === "Escape" && !showSearch) {
         if (selectedAgentForProfile) setSelectedAgentForProfile(null)
         else if (selectedTaskId) setSelectedTaskId(null)
         else if (showCreateTask) setShowCreateTask(false)
@@ -157,7 +166,7 @@ export default function DashboardPage() {
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [selectedAgentForProfile, selectedTaskId, showCreateTask, showRoutineBuilder])
+  }, [selectedAgentForProfile, selectedTaskId, showCreateTask, showRoutineBuilder, showSearch])
 
   // Fetch tasks when department changes or view switches to tasks
   const fetchTasks = useCallback(async () => {
@@ -246,6 +255,8 @@ export default function DashboardPage() {
       }
     } catch {
       // Will work once DB is populated via setup wizard
+    } finally {
+      setInitialLoading(false)
     }
   }
 
@@ -363,6 +374,7 @@ export default function DashboardPage() {
     assignedTo: string | null
     priority: string
     phase: string | null
+    dueDate: string | null
     notes: string
   }) {
     try {
@@ -900,12 +912,30 @@ export default function DashboardPage() {
       userName={userName}
       pendingApprovalCount={pendingApprovalCount}
     >
-      {view === "dashboard" && (
+      {view === "dashboard" && initialLoading && <DashboardSkeleton />}
+      {view === "dashboard" && !initialLoading && (
         <>
           <DashboardHome
             agents={visibleAgents}
             departments={departments}
             onSelectAgent={handleOpenProfile}
+            onAgentToggle={async (agentId, enabled) => {
+              try {
+                const agent = agents.find((a) => a.id === agentId)
+                const res = await fetch(`/api/agents/${agentId}/heartbeat`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ schedule: agent?.heartbeatSchedule || "", enabled }),
+                })
+                if (res.ok) {
+                  toast.success(enabled ? "Agent resumed" : "Agent paused")
+                  const agentRes = await fetch("/api/agents")
+                  if (agentRes.ok) setAgents(await agentRes.json())
+                }
+              } catch {
+                toast.error("Failed to toggle agent")
+              }
+            }}
           />
 
           {/* Agent profile slide-over */}
@@ -1382,6 +1412,26 @@ export default function DashboardPage() {
           )}
         </div>
       )}
+      {/* Global search modal */}
+      <SearchModal
+        open={showSearch}
+        onClose={() => setShowSearch(false)}
+        onNavigate={(v) => { setView(v); setShowSearch(false) }}
+        onSelectAgent={(agentId) => {
+          setSelectedAgent(agentId)
+          setView("chat")
+          setShowSearch(false)
+        }}
+        onSelectTask={(taskId) => {
+          setSelectedTaskId(taskId)
+          setShowSearch(false)
+        }}
+        agents={agents}
+        tasks={tasks}
+        departments={departments}
+        goals={goalsList}
+        routines={routinesList}
+      />
     </Shell>
   )
 }

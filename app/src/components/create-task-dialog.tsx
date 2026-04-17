@@ -21,6 +21,7 @@ interface CreateTaskPayload {
   assignedTo: string | null
   priority: string
   phase: string | null
+  dueDate: string | null
   notes: string
 }
 
@@ -46,6 +47,7 @@ export function CreateTaskDialog({
   const [assignedTo, setAssignedTo] = useState<string | null>(null)
   const [priority, setPriority] = useState("medium")
   const [phase, setPhase] = useState<string | null>(null)
+  const [dueDate, setDueDate] = useState("")
   const [notes, setNotes] = useState("")
 
   const filteredAgents = departmentId
@@ -62,6 +64,7 @@ export function CreateTaskDialog({
       assignedTo,
       priority,
       phase,
+      dueDate: dueDate || null,
       notes,
     })
   }
@@ -182,6 +185,17 @@ export function CreateTaskDialog({
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Due Date */}
+            <div>
+              <label className="text-sm font-medium">Due Date</label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="mt-1 w-full bg-inset rounded-lg px-3 py-2 text-sm outline-none border border-border"
+              />
             </div>
 
             {/* Notes */}

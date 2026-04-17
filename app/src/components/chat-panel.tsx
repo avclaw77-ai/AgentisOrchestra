@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { Send, Bot, User, Wrench, Brain, Cpu, Loader2, Paperclip, Square, Copy, Check } from "lucide-react"
+import { Send, Bot, User, Wrench, Brain, Cpu, Loader2, Paperclip, Square, Copy, Check, Pencil, RotateCcw, Coins } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { cn } from "@/lib/utils"
@@ -27,12 +27,19 @@ interface MessageBlock {
   reason?: string
 }
 
+interface TokenUsage {
+  inputTokens?: number
+  outputTokens?: number
+  cost?: number
+}
+
 interface Message {
   id: string
   role: "user" | "assistant"
   blocks: MessageBlock[]
   timestamp: Date
   streaming?: boolean
+  usage?: TokenUsage
 }
 
 export function ChatPanel({ channel, agentName, agentDisplayName, departmentId, fullHeight }: ChatPanelProps) {
@@ -40,6 +47,8 @@ export function ChatPanel({ channel, agentName, agentDisplayName, departmentId, 
   const [input, setInput] = useState("")
   const [streaming, setStreaming] = useState(false)
   const [attachedFile, setAttachedFile] = useState<File | null>(null)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editText, setEditText] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -219,22 +228,27 @@ export function ChatPanel({ channel, agentName, agentDisplayName, departmentId, 
                   case "system":
                     addBlock(assistantId, { type: "system", content: data.text || "" })
                     break
-                  case "done":
+                  case "done": {
+                    const usage: TokenUsage | undefined = data.usage ? {
+                      inputTokens: data.usage.input_tokens,
+                      outputTokens: data.usage.output_tokens,
+                      cost: data.usage.cost,
+                    } : undefined
                     if (data.result) {
-                      // Replace text blocks with final result
                       setMessages((prev) =>
                         prev.map((m) => {
                           if (m.id !== assistantId) return m
                           const nonTextBlocks = m.blocks.filter((b) => b.type !== "text")
-                          return { ...m, blocks: [...nonTextBlocks, { type: "text" as const, content: data.result }], streaming: false }
+                          return { ...m, blocks: [...nonTextBlocks, { type: "text" as const, content: data.result }], streaming: false, usage }
                         })
                       )
                     } else {
                       setMessages((prev) =>
-                        prev.map((m) => m.id === assistantId ? { ...m, streaming: false } : m)
+                        prev.map((m) => m.id === assistantId ? { ...m, streaming: false, usage } : m)
                       )
                     }
                     break
+                  }
                   case "error":
                     addBlock(assistantId, { type: "system", content: `Error: ${data.error}` })
                     break
@@ -267,6 +281,28 @@ export function ChatPanel({ channel, agentName, agentDisplayName, departmentId, 
       handleSend()
     }
   }
+
+  // Clipboard image paste (Ctrl+V / Cmd+V)
+  useEffect(() => {
+    function handlePaste(e: ClipboardEvent) {
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/")) {
+          e.preventDefault()
+          const file = item.getAsFile()
+          if (file) {
+            const ext = item.type.split("/")[1] || "png"
+            const named = new File([file], `clipboard-${Date.now()}.${ext}`, { type: file.type })
+            setAttachedFile(named)
+          }
+          break
+        }
+      }
+    }
+    window.addEventListener("paste", handlePaste)
+    return () => window.removeEventListener("paste", handlePaste)
+  }, [])
 
   const displayName = agentDisplayName || agentName
   const accentColor = AGENT_COLORS[channel] || "var(--primary)"

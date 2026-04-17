@@ -8,8 +8,10 @@ import {
   DollarSign,
   Clock,
   Repeat,
-  ChevronUp,
+  Pause,
+  Play,
 } from "lucide-react"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { AGENT_COLORS, STATUS_COLORS } from "@/lib/constants"
 import type { Agent, Department } from "@/types"
@@ -18,6 +20,7 @@ interface DashboardHomeProps {
   agents: Agent[]
   departments: Department[]
   onSelectAgent?: (id: string) => void
+  onAgentToggle?: (agentId: string, enabled: boolean) => void
 }
 
 interface ActivityEntry {
@@ -48,7 +51,7 @@ interface TaskData {
   status: string
 }
 
-export function DashboardHome({ agents, departments, onSelectAgent }: DashboardHomeProps) {
+export function DashboardHome({ agents, departments, onSelectAgent, onAgentToggle }: DashboardHomeProps) {
   const [activity, setActivity] = useState<ActivityEntry[]>([])
   const [routines, setRoutines] = useState<RoutineSummary[]>([])
   const [monthlyCost, setMonthlyCost] = useState(0)
@@ -166,34 +169,55 @@ export function DashboardHome({ agents, departments, onSelectAgent }: DashboardH
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-1 p-2">
             {agents.map((agent) => (
-              <button
+              <div
                 key={agent.id}
-                onClick={() => onSelectAgent?.(agent.id)}
-                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left hover:bg-surface-hover transition-colors"
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-surface-hover transition-colors group"
               >
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
-                  style={{ backgroundColor: AGENT_COLORS[agent.id] || "#6366f1" }}
+                <button
+                  onClick={() => onSelectAgent?.(agent.id)}
+                  className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
                 >
-                  {(agent.displayName || agent.name).slice(0, 2).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium truncate">{agent.displayName || agent.name}</span>
-                    <div
-                      className={cn(
-                        "w-2 h-2 rounded-full shrink-0",
-                        agent.status === "active" && "agent-pulse",
-                        agent.status === "thinking" && "thinking-pulse"
-                      )}
-                      style={{ backgroundColor: STATUS_COLORS[agent.status] }}
-                    />
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
+                    style={{ backgroundColor: AGENT_COLORS[agent.id] || "#6366f1" }}
+                  >
+                    {(agent.displayName || agent.name).slice(0, 2).toUpperCase()}
                   </div>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {agent.currentTask || agent.role}
-                  </p>
-                </div>
-              </button>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium truncate">{agent.displayName || agent.name}</span>
+                      <div
+                        className={cn(
+                          "w-2 h-2 rounded-full shrink-0",
+                          agent.status === "active" && "agent-pulse",
+                          agent.status === "thinking" && "thinking-pulse"
+                        )}
+                        style={{ backgroundColor: STATUS_COLORS[agent.status] }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {agent.currentTask || agent.role}
+                    </p>
+                  </div>
+                </button>
+                {agent.heartbeatSchedule && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onAgentToggle?.(agent.id, !agent.heartbeatEnabled)
+                    }}
+                    className={cn(
+                      "p-1.5 rounded-lg shrink-0 opacity-0 group-hover:opacity-100 transition-all",
+                      agent.heartbeatEnabled
+                        ? "text-amber-500 hover:bg-amber-50"
+                        : "text-emerald-500 hover:bg-emerald-50"
+                    )}
+                    title={agent.heartbeatEnabled ? "Pause agent" : "Resume agent"}
+                  >
+                    {agent.heartbeatEnabled ? <Pause size={14} /> : <Play size={14} />}
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </div>

@@ -169,6 +169,7 @@ export interface Task {
   estimatedTokens: number | null
   actualTokens: number
   goalId: string | null
+  dueDate: string | null
   createdAt: string
   updatedAt: string
 }

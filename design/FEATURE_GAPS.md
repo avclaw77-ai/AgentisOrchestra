@@ -6,7 +6,7 @@
 
 ---
 
-## FIXED (17 items closed this session)
+## FIXED (24 items closed)
 
 | # | Gap | Fix |
 |---|-----|-----|
@@ -27,36 +27,31 @@
 | -- | Session cookie Secure flag on HTTP | SECURE_COOKIES env var |
 | -- | Skills definitions empty | 23 skills populated with real definitions |
 | -- | No Models Sandbox | Test any model with prompt presets |
+| 11 | **No Kanban drag-and-drop** | @hello-pangea/dnd with grip handles + drop zones |
+| 21 | **No global search modal** | Cmd+K opens search across agents, tasks, goals, routines, nav |
+| 4 | **No clipboard image paste** | Ctrl+V captures images from clipboard |
+| 8 | **No agent pause/resume** | Dashboard hover toggle on heartbeat agents |
+| 13 | **No task due dates** | DB schema + create dialog + kanban cards + task detail |
+| 25 | **No loading skeleton** | DashboardSkeleton, KanbanSkeleton, ChatSkeleton components |
+| 7 | **No token count per message** | SSE done event parsing with usage display |
 
-## REMAINING -- CRITICAL (2)
-
-| # | Gap | Location | Effort |
-|---|-----|----------|--------|
-| 11 | **No Kanban drag-and-drop** | `kanban-board.tsx` | Medium (add @hello-pangea/dnd) |
-| 21 | **No global search modal** (Cmd+K opens chat, not search) | `shell.tsx` + new `/api/search` | Medium |
-
-## REMAINING -- HIGH (7)
+## REMAINING -- HIGH (4)
 
 | # | Gap | Location | Effort |
 |---|-----|----------|--------|
 | 3 | No multi-conversation per agent | `chat-panel.tsx` + conversations API | Medium |
-| 4 | No clipboard image paste (Ctrl+V) | `chat-panel.tsx` onPaste handler | Small |
-| 8 | No agent pause/resume from dashboard | `agent-roster.tsx` heartbeat toggle | Small |
 | 9 | No live run view (watch agent in progress) | `agent-profile.tsx` + SSE endpoint | Medium |
-| 13 | No task due dates | `db/schema.ts` + task UIs | Small |
 | 20 | No system/bridge logs view in UI | Settings tab + bridge logs endpoint | Medium |
 | 23 | No onboarding guidance for new installs | `dashboard-home.tsx` first-run checklist | Small |
 
-## REMAINING -- MEDIUM (6)
+## REMAINING -- MEDIUM (5)
 
 | # | Gap | Location | Effort |
 |---|-----|----------|--------|
 | 6 | No edit/retry on chat messages | `chat-panel.tsx` | Small |
-| 7 | No token count per message in chat | Bridge done event + chat UI | Small |
 | 10 | No tool permission config per agent | `agent-profile.tsx` config tab | Medium |
 | 14 | No task file attachments | `task-detail.tsx` | Small |
 | 15 | No task dependencies (blocking/blocked-by) | `db/schema.ts` + task UIs | Medium |
-| 25 | No loading skeleton on initial page fetch | `page.tsx` | Small |
 
 ## REMAINING -- LOW (3)
 
@@ -70,10 +65,10 @@
 
 | Feature | Priority | Status |
 |---------|----------|--------|
-| Skills/Command Directory | HIGH | DONE (upgraded with search + definitions) |
-| Models Sandbox | HIGH | DONE (Models > Sandbox tab) |
-| Kanban drag-and-drop | CRITICAL | TODO |
-| Global search (Cmd+K modal) | CRITICAL | TODO |
+| Skills/Command Directory | HIGH | DONE |
+| Models Sandbox | HIGH | DONE |
+| Kanban drag-and-drop | CRITICAL | DONE |
+| Global search (Cmd+K modal) | CRITICAL | DONE |
 | Help tooltips on key UI elements | LOW | PARTIAL (nav done, forms pending) |
 
 ## SECURITY BACKLOG
