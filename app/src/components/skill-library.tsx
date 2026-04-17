@@ -161,12 +161,20 @@ function SkillCard({
           )}
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground">
-              Definition
-            </label>
-            <pre className="mt-1 p-3 bg-inset rounded-lg text-xs overflow-auto max-h-48 font-mono">
-              {JSON.stringify(skill.definition, null, 2)}
-            </pre>
+            <label className="text-xs font-medium text-muted-foreground">Definition</label>
+            <div className="mt-1 p-3 bg-inset rounded-lg text-xs space-y-1.5">
+              {Object.entries(skill.definition).map(([k, v]) => (
+                <div key={k} className="flex items-start gap-2">
+                  <span className="font-mono font-medium text-muted-foreground w-20 shrink-0">{k}:</span>
+                  <span className="text-foreground">
+                    {Array.isArray(v) ? v.join(", ") : typeof v === "object" && v ? JSON.stringify(v) : String(v)}
+                  </span>
+                </div>
+              ))}
+              {Object.keys(skill.definition).length === 0 && (
+                <span className="text-muted-foreground italic">No definition configured</span>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -320,6 +328,17 @@ export function SkillLibrary({
   onUpdateSkill,
 }: SkillLibraryProps) {
   const [showCreate, setShowCreate] = useState(false)
+  const [searchFilter, setSearchFilter] = useState("")
+  const [sourceFilter, setSourceFilter] = useState("all")
+
+  const filteredSkills = skills.filter((s) => {
+    if (searchFilter) {
+      const q = searchFilter.toLowerCase()
+      if (!s.name.toLowerCase().includes(q) && !s.key.toLowerCase().includes(q) && !(s.description || "").toLowerCase().includes(q)) return false
+    }
+    if (sourceFilter !== "all" && s.sourceType !== sourceFilter) return false
+    return true
+  })
 
   if (skills.length === 0 && !showCreate) {
     return (
@@ -355,6 +374,32 @@ export function SkillLibrary({
         </button>
       </div>
 
+      {/* Search + filter */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <div className="relative flex-1 min-w-[200px]">
+          <Package size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+            placeholder="Search skills..."
+            className="w-full pl-8 pr-3 py-1.5 bg-card border border-border rounded-lg text-sm outline-none focus:border-primary"
+          />
+        </div>
+        <select
+          value={sourceFilter}
+          onChange={(e) => setSourceFilter(e.target.value)}
+          className="bg-card border border-border rounded-lg px-3 py-1.5 text-sm outline-none"
+        >
+          <option value="all">All sources</option>
+          <option value="local">Local</option>
+          <option value="github">GitHub</option>
+          <option value="url">URL</option>
+          <option value="bundled">Bundled</option>
+        </select>
+        <span className="text-xs text-muted-foreground self-center">{filteredSkills.length} of {skills.length}</span>
+      </div>
+
       {showCreate && (
         <div className="mb-4">
           <CreateSkillForm
@@ -368,7 +413,7 @@ export function SkillLibrary({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {skills.map((skill) => (
+        {filteredSkills.map((skill) => (
           <SkillCard key={skill.id} skill={skill} onUpdate={onUpdateSkill} />
         ))}
       </div>
