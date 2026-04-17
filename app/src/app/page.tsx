@@ -931,7 +931,7 @@ export default function DashboardPage() {
       )}
 
       {view === "files" && (
-        <FileBrowser agents={filteredAgents} />
+        <FileBrowser agents={visibleAgents} />
       )}
 
       {view === "goals" && (
