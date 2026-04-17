@@ -269,6 +269,156 @@ app.post("/scheduler/reload", async (_req, res) => {
 })
 
 // =============================================================================
+// File management -- browse, read, upload agent outputs
+// =============================================================================
+
+import { promises as fsPromises } from "node:fs"
+import pathModule from "node:path"
+import { createWriteStream } from "node:fs"
+
+const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || "/opt/agentis-orchestra/workspace"
+
+// Ensure workspace exists
+fsPromises.mkdir(WORKSPACE_ROOT, { recursive: true }).catch(() => {})
+fsPromises.mkdir(pathModule.join(WORKSPACE_ROOT, "uploads"), { recursive: true }).catch(() => {})
+fsPromises.mkdir(pathModule.join(WORKSPACE_ROOT, "outputs"), { recursive: true }).catch(() => {})
+fsPromises.mkdir(pathModule.join(WORKSPACE_ROOT, "previews"), { recursive: true }).catch(() => {})
+
+// List files
+app.get("/files", requireAuth, async (req, res) => {
+  const reqPath = (req.query.path as string) || "/"
+  const agent = (req.query.agent as string) || ""
+
+  const basePath = agent
+    ? pathModule.join(WORKSPACE_ROOT, "outputs", agent)
+    : pathModule.join(WORKSPACE_ROOT, reqPath.startsWith("/") ? reqPath.slice(1) : reqPath)
+
+  const safePath = pathModule.resolve(basePath)
+  if (!safePath.startsWith(pathModule.resolve(WORKSPACE_ROOT))) {
+    res.status(403).json({ error: "Access denied" })
+    return
+  }
+
+  try {
+    await fsPromises.mkdir(safePath, { recursive: true })
+    const entries = await fsPromises.readdir(safePath, { withFileTypes: true })
+    const files = await Promise.all(
+      entries.map(async (entry) => {
+        const fullPath = pathModule.join(safePath, entry.name)
+        const stat = await fsPromises.stat(fullPath).catch(() => null)
+        return {
+          name: entry.name,
+          path: pathModule.relative(WORKSPACE_ROOT, fullPath),
+          isDirectory: entry.isDirectory(),
+          size: stat?.size || 0,
+          modified: stat?.mtime?.toISOString() || null,
+          extension: entry.isDirectory() ? null : pathModule.extname(entry.name).slice(1).toLowerCase(),
+        }
+      })
+    )
+    res.json({ path: pathModule.relative(WORKSPACE_ROOT, safePath), files })
+  } catch (err) {
+    res.status(500).json({ error: "Failed to list directory" })
+  }
+})
+
+// Read file content
+app.get("/files/read", requireAuth, async (req, res) => {
+  const filePath = req.query.path as string
+  if (!filePath) { res.status(400).json({ error: "path required" }); return }
+
+  const safePath = pathModule.resolve(WORKSPACE_ROOT, filePath.startsWith("/") ? filePath.slice(1) : filePath)
+  if (!safePath.startsWith(pathModule.resolve(WORKSPACE_ROOT))) {
+    res.status(403).json({ error: "Access denied" })
+    return
+  }
+
+  try {
+    const stat = await fsPromises.stat(safePath)
+    if (!stat.isFile()) { res.status(400).json({ error: "Not a file" }); return }
+
+    const ext = pathModule.extname(safePath).toLowerCase()
+    const textExts = [".md", ".txt", ".json", ".yaml", ".yml", ".csv", ".html", ".css", ".js", ".ts", ".tsx", ".jsx", ".py", ".sh", ".sql", ".xml", ".toml", ".env", ".log"]
+    const isText = textExts.includes(ext)
+
+    if (isText) {
+      const content = await fsPromises.readFile(safePath, "utf-8")
+      res.setHeader("Content-Type", ext === ".json" ? "application/json" : ext === ".md" ? "text/markdown" : "text/plain")
+      res.send(content)
+    } else {
+      // Binary -- serve as download
+      const mimeMap: Record<string, string> = {
+        ".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+        ".gif": "image/gif", ".svg": "image/svg+xml", ".zip": "application/zip",
+        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      }
+      res.setHeader("Content-Type", mimeMap[ext] || "application/octet-stream")
+      res.setHeader("Content-Disposition", `inline; filename="${pathModule.basename(safePath)}"`)
+      const stream = await fsPromises.readFile(safePath)
+      res.send(stream)
+    }
+  } catch {
+    res.status(404).json({ error: "File not found" })
+  }
+})
+
+// Upload file
+app.post("/files/upload", requireAuth, async (req, res) => {
+  // Simple multipart handling -- for production, use multer
+  const chunks: Buffer[] = []
+  req.on("data", (chunk: Buffer) => chunks.push(chunk))
+  req.on("end", async () => {
+    try {
+      const body = Buffer.concat(chunks)
+      const contentType = req.headers["content-type"] || ""
+
+      if (!contentType.includes("multipart/form-data")) {
+        // JSON body with base64 content
+        const data = JSON.parse(body.toString())
+        const { filename, content, path: targetDir, agentId } = data
+
+        if (!filename || !content) {
+          res.status(400).json({ error: "filename and content required" })
+          return
+        }
+
+        const dir = agentId
+          ? pathModule.join(WORKSPACE_ROOT, "outputs", agentId)
+          : pathModule.join(WORKSPACE_ROOT, targetDir || "uploads")
+        await fsPromises.mkdir(dir, { recursive: true })
+
+        const filePath = pathModule.join(dir, filename)
+        const safePath = pathModule.resolve(filePath)
+        if (!safePath.startsWith(pathModule.resolve(WORKSPACE_ROOT))) {
+          res.status(403).json({ error: "Access denied" })
+          return
+        }
+
+        // Handle base64 or raw text
+        if (content.startsWith("data:")) {
+          const base64Data = content.split(",")[1]
+          await fsPromises.writeFile(safePath, Buffer.from(base64Data, "base64"))
+        } else {
+          await fsPromises.writeFile(safePath, content, "utf-8")
+        }
+
+        res.json({
+          uploaded: true,
+          path: pathModule.relative(WORKSPACE_ROOT, safePath),
+          size: (await fsPromises.stat(safePath)).size,
+        })
+      } else {
+        // Multipart -- extract filename and content from boundary
+        res.status(400).json({ error: "Use JSON upload: { filename, content, agentId? }" })
+      }
+    } catch (err) {
+      res.status(500).json({ error: "Upload failed" })
+    }
+  })
+})
+
+// =============================================================================
 // Raw HTTP server for unbuffered SSE streaming
 // =============================================================================
 

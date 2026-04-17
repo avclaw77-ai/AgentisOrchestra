@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Send, Bot, User, Wrench, Brain, Cpu, Loader2 } from "lucide-react"
+import { Send, Bot, User, Wrench, Brain, Cpu, Loader2, Paperclip } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AGENT_COLORS } from "@/lib/constants"
 
@@ -37,6 +37,7 @@ export function ChatPanel({ channel, agentName, agentDisplayName, departmentId, 
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [streaming, setStreaming] = useState(false)
+  const [attachedFile, setAttachedFile] = useState<File | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -89,12 +90,32 @@ export function ChatPanel({ channel, agentName, agentDisplayName, departmentId, 
   }
 
   async function handleSend() {
-    if (!input.trim() || streaming) return
+    if ((!input.trim() && !attachedFile) || streaming) return
+
+    // Build message content -- include file content if attached
+    let messageText = input.trim()
+    if (attachedFile) {
+      try {
+        const fileContent = await attachedFile.text()
+        const fileInfo = `[Attached file: ${attachedFile.name} (${(attachedFile.size / 1024).toFixed(1)} KB)]\n\n${fileContent}`
+        messageText = messageText ? `${messageText}\n\n${fileInfo}` : fileInfo
+
+        // Also upload to workspace
+        fetch("/api/files", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: attachedFile.name, content: fileContent, path: "uploads", agentId: channel }),
+        }).catch(() => {})
+      } catch {
+        messageText = messageText || `[Attached file: ${attachedFile.name}]`
+      }
+      setAttachedFile(null)
+    }
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: "user",
-      blocks: [{ type: "text", content: input.trim() }],
+      blocks: [{ type: "text", content: messageText }],
       timestamp: new Date(),
     }
 
@@ -291,7 +312,31 @@ export function ChatPanel({ channel, agentName, agentDisplayName, departmentId, 
 
       {/* Input */}
       <div className="px-4 py-3 border-t border-border">
+        {/* Attached file preview */}
+        {attachedFile && (
+          <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-muted rounded-lg text-xs">
+            <Paperclip size={12} className="text-muted-foreground" />
+            <span className="font-medium truncate flex-1">{attachedFile.name}</span>
+            <span className="text-muted-foreground">{(attachedFile.size / 1024).toFixed(1)} KB</span>
+            <button onClick={() => setAttachedFile(null)} className="text-muted-foreground hover:text-foreground">
+              <span className="sr-only">Remove</span>&times;
+            </button>
+          </div>
+        )}
         <div className="flex gap-2">
+          <label className="px-2 flex items-center cursor-pointer text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted">
+            <Paperclip size={16} />
+            <input
+              type="file"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) setAttachedFile(file)
+                e.target.value = ""
+              }}
+              disabled={streaming}
+            />
+          </label>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -303,10 +348,10 @@ export function ChatPanel({ channel, agentName, agentDisplayName, departmentId, 
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || streaming}
+            disabled={(!input.trim() && !attachedFile) || streaming}
             className={cn(
               "px-3 rounded-lg transition-colors shrink-0",
-              input.trim() && !streaming
+              (input.trim() || attachedFile) && !streaming
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
                 : "bg-muted text-muted-foreground"
             )}

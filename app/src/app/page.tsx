@@ -21,6 +21,7 @@ import { DecisionLog } from "@/components/decision-log"
 import { ActivityLog } from "@/components/activity-log"
 import { TeamManager } from "@/components/team-manager"
 import { ConnectorLibrary } from "@/components/connector-library"
+import { FileBrowser } from "@/components/file-browser"
 import type {
   Agent,
   AgentConfig,
@@ -927,6 +928,10 @@ export default function DashboardPage() {
             />
           )}
         </div>
+      )}
+
+      {view === "files" && (
+        <FileBrowser agents={filteredAgents} />
       )}
 
       {view === "goals" && (
