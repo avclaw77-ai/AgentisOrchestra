@@ -47,6 +47,8 @@ export default function LoginPage() {
         return
       }
 
+      // Set setup cookie client-side to ensure middleware sees it on redirect
+      document.cookie = "ao_setup_done=1; path=/; max-age=315360000"
       window.location.href = "/"
     } catch {
       setError("Cannot connect to server. Please check your connection.")
