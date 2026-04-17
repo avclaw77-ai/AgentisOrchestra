@@ -24,6 +24,7 @@ import { TeamManager } from "@/components/team-manager"
 import { ConnectorLibrary } from "@/components/connector-library"
 import { FileBrowser } from "@/components/file-browser"
 import { ModelSandbox } from "@/components/model-sandbox"
+import { ProviderKeys } from "@/components/provider-keys"
 import type {
   Agent,
   AgentConfig,
@@ -90,7 +91,7 @@ export default function DashboardPage() {
 
   // Settings sub-tab
   const [settingsTab, setSettingsTab] = useState<"general" | "team" | "connectors" | "approvals" | "skills" | "decisions" | "activity" | "export">("general")
-  const [modelsTab, setModelsTab] = useState<"config" | "sandbox">("config")
+  const [modelsTab, setModelsTab] = useState<"config" | "sandbox" | "keys">("config")
 
   // Company general form state
   const [companyName, setCompanyName] = useState("")
@@ -1024,9 +1025,18 @@ export default function DashboardPage() {
             >
               Sandbox
             </button>
+            <button
+              onClick={() => setModelsTab("keys")}
+              className={cn("px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                modelsTab === "keys" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              API Keys
+            </button>
           </div>
           {modelsTab === "config" && <ModelConfig />}
           {modelsTab === "sandbox" && <ModelSandbox />}
+          {modelsTab === "keys" && <ProviderKeys />}
         </div>
       )}
 
