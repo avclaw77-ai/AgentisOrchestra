@@ -326,10 +326,28 @@ export function Shell({
               <User size={14} className="text-muted-foreground" />
             </div>
             {!isCollapsed && (
-              <div className="min-w-0">
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium leading-tight">{userName || "Admin"}</p>
                 <p className="text-[11px] text-muted-foreground leading-tight capitalize">{userRole}</p>
               </div>
+            )}
+            {!isCollapsed && (
+              <button
+                onClick={async () => {
+                  await fetch("/api/auth", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "logout" }),
+                  })
+                  document.cookie = "ao_session=; path=/; max-age=0"
+                  document.cookie = "ao_setup_done=; path=/; max-age=0"
+                  window.location.href = "/login"
+                }}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                title="Sign out"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              </button>
             )}
           </div>
           {!isCollapsed && (
