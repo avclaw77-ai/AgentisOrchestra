@@ -1,8 +1,9 @@
 "use client"
 
+import { useState, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { TASK_COLUMNS } from "@/lib/constants"
-import { Lock, Plus, Circle } from "lucide-react"
+import { Lock, Plus, Circle, Search } from "lucide-react"
 import type { Task, Agent, TaskStatus } from "@/types"
 
 // ---------------------------------------------------------------------------
@@ -168,10 +169,36 @@ export function KanbanBoard({
   onSelectTask,
   onCreateTask,
 }: KanbanBoardProps) {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [priorityFilter, setPriorityFilter] = useState<string>("all")
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all")
+
   const isCeoView = departmentId === null
   const departmentColors = Object.fromEntries(
     departments.map((d) => [d.id, d.color])
   )
+
+  const filteredTasks = useMemo(() => {
+    let result = tasks
+
+    // Search by title
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter((t) => t.title.toLowerCase().includes(q))
+    }
+
+    // Filter by priority
+    if (priorityFilter !== "all") {
+      result = result.filter((t) => t.priority === priorityFilter)
+    }
+
+    // Filter by assignee
+    if (assigneeFilter !== "all") {
+      result = result.filter((t) => t.assignedTo === assigneeFilter)
+    }
+
+    return result
+  }, [tasks, searchQuery, priorityFilter, assigneeFilter])
 
   return (
     <div>
@@ -188,9 +215,47 @@ export function KanbanBoard({
           New Task
         </button>
       </div>
+
+      {/* Search and filter bar */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search tasks..."
+            className="w-full bg-inset rounded-lg pl-9 pr-3 py-2 text-sm outline-none border border-border focus:ring-2 focus:ring-primary/40"
+          />
+        </div>
+        <select
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value)}
+          className="bg-inset rounded-lg px-3 py-2 text-sm outline-none border border-border"
+        >
+          <option value="all">All Priorities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select
+          value={assigneeFilter}
+          onChange={(e) => setAssigneeFilter(e.target.value)}
+          className="bg-inset rounded-lg px-3 py-2 text-sm outline-none border border-border"
+        >
+          <option value="all">All Assignees</option>
+          {agents.map((agent) => (
+            <option key={agent.id} value={agent.id}>
+              {agent.displayName || agent.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {TASK_COLUMNS.map((col) => {
-          const colTasks = tasks
+          const colTasks = filteredTasks
             .filter((t) => t.status === col.key)
             .sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 2) - (PRIORITY_ORDER[b.priority] ?? 2))
           return (

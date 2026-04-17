@@ -41,6 +41,7 @@ interface ShellProps {
   userRole?: "admin" | "member" | "viewer"
   userDepartmentIds?: string[]
   userName?: string
+  pendingApprovalCount?: number
 }
 
 interface NavGroup {
@@ -89,6 +90,7 @@ export function Shell({
   userRole = "admin",
   userDepartmentIds = [],
   userName,
+  pendingApprovalCount,
 }: ShellProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [deptOpen, setDeptOpen] = useState(false)
@@ -293,6 +295,16 @@ export function Shell({
                       )}
                       <span className="shrink-0">{item.icon}</span>
                       {!isCollapsed && <span>{item.label}</span>}
+                      {item.key === "approvals" && !!pendingApprovalCount && pendingApprovalCount > 0 && (
+                        <span className={cn(
+                          "flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold leading-none",
+                          isCollapsed
+                            ? "absolute -top-1 -right-1 w-4 h-4"
+                            : "ml-auto w-5 h-5"
+                        )}>
+                          {pendingApprovalCount}
+                        </span>
+                      )}
                     </button>
                   )
                 })}

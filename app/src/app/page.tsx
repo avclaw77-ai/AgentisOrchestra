@@ -96,6 +96,15 @@ export default function DashboardPage() {
   const [companySaving, setCompanySaving] = useState(false)
   const [companyLoaded, setCompanyLoaded] = useState(false)
 
+  // Password change form state
+  const [pwCurrent, setPwCurrent] = useState("")
+  const [pwNew, setPwNew] = useState("")
+  const [pwConfirm, setPwConfirm] = useState("")
+  const [pwSaving, setPwSaving] = useState(false)
+
+  // Pending approval count for nav badge
+  const [pendingApprovalCount, setPendingApprovalCount] = useState(0)
+
   // Export template metadata
   const [exportTemplateName, setExportTemplateName] = useState("")
   const [exportTemplateDesc, setExportTemplateDesc] = useState("")
@@ -193,6 +202,17 @@ export default function DashboardPage() {
         setUserDepartmentIds(profile.departmentIds || [])
         setUserName(profile.name || "")
       }
+
+      // Fetch pending approval count for nav badge
+      try {
+        const approvalsRes = await fetch("/api/approvals?status=pending")
+        if (approvalsRes.ok) {
+          const pendingApprovals: ApprovalRequest[] = await approvalsRes.json()
+          setPendingApprovalCount(pendingApprovals.length)
+        }
+      } catch {
+        // Approvals count will work once DB is ready
+      }
     } catch {
       // Will work once DB is populated via setup wizard
     }
@@ -242,6 +262,41 @@ export default function DashboardPage() {
       toast.error("Failed to save company settings")
     } finally {
       setCompanySaving(false)
+    }
+  }
+
+  async function handleChangePassword() {
+    if (!pwCurrent || !pwNew || !pwConfirm) {
+      toast.error("All password fields are required")
+      return
+    }
+    if (pwNew.length < 8) {
+      toast.error("New password must be at least 8 characters")
+      return
+    }
+    if (pwNew !== pwConfirm) {
+      toast.error("New passwords do not match")
+      return
+    }
+    setPwSaving(true)
+    try {
+      const res = await fetch("/api/auth/password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Failed to change password")
+      }
+      toast.success("Password changed")
+      setPwCurrent("")
+      setPwNew("")
+      setPwConfirm("")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to change password")
+    } finally {
+      setPwSaving(false)
     }
   }
 
@@ -812,6 +867,7 @@ export default function DashboardPage() {
       userRole={userRole}
       userDepartmentIds={userDepartmentIds}
       userName={userName}
+      pendingApprovalCount={pendingApprovalCount}
     >
       {view === "dashboard" && (
         <>
@@ -1004,6 +1060,7 @@ export default function DashboardPage() {
           </div>
 
           {settingsTab === "general" && (
+            <>
             <div className="bg-card border border-border rounded-xl p-6 space-y-4 max-w-2xl">
               <div>
                 <label className="text-sm font-medium">Company Name</label>
@@ -1045,6 +1102,53 @@ export default function DashboardPage() {
                 </button>
               </div>
             </div>
+
+            {/* Change Password */}
+            <div className="bg-card border border-border rounded-xl p-6 space-y-4 max-w-2xl mt-6">
+              <h3 className="text-sm font-semibold">Change Password</h3>
+              <div>
+                <label className="text-sm font-medium">Current Password</label>
+                <input
+                  type="password"
+                  value={pwCurrent}
+                  onChange={(e) => setPwCurrent(e.target.value)}
+                  className="mt-1 w-full bg-inset rounded-lg px-3 py-2 text-sm outline-none"
+                  autoComplete="current-password"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">New Password</label>
+                <input
+                  type="password"
+                  value={pwNew}
+                  onChange={(e) => setPwNew(e.target.value)}
+                  className="mt-1 w-full bg-inset rounded-lg px-3 py-2 text-sm outline-none"
+                  autoComplete="new-password"
+                  minLength={8}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Minimum 8 characters</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={pwConfirm}
+                  onChange={(e) => setPwConfirm(e.target.value)}
+                  className="mt-1 w-full bg-inset rounded-lg px-3 py-2 text-sm outline-none"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={handleChangePassword}
+                  disabled={pwSaving || !pwCurrent || !pwNew || !pwConfirm}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {pwSaving ? "Saving..." : "Change Password"}
+                </button>
+              </div>
+            </div>
+            </>
           )}
 
           {settingsTab === "team" && (
