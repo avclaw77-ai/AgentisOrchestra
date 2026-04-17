@@ -1,13 +1,27 @@
 "use client"
 
-import { useState } from "react"
-import { LogIn } from "lucide-react"
+import { useState, useEffect } from "react"
+import { LogIn, AlertCircle } from "lucide-react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+
+  // Ensure setup cookie is set (handles cleared-cookie scenario)
+  useEffect(() => {
+    fetch("/api/setup")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.setupCompleted) {
+          document.cookie = "ao_setup_done=1; path=/; max-age=315360000"
+        } else {
+          window.location.href = "/setup"
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -22,14 +36,20 @@ export default function LoginPage() {
       })
 
       if (!res.ok) {
-        const data = await res.json()
-        setError(data.error || "Login failed")
+        const data = await res.json().catch(() => ({ error: "Login failed" }))
+        if (res.status === 401) {
+          setError("Invalid email or password")
+        } else if (res.status === 403) {
+          setError("Account disabled. Contact your administrator.")
+        } else {
+          setError(data.error || "Login failed. Please try again.")
+        }
         return
       }
 
       window.location.href = "/"
     } catch {
-      setError("Connection failed")
+      setError("Cannot connect to server. Please check your connection.")
     } finally {
       setLoading(false)
     }
@@ -79,7 +99,10 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <p className="text-sm text-destructive">{error}</p>
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
           )}
 
           <button
