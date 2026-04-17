@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import { Shell, type View } from "@/components/shell"
 import { AgentRoster } from "@/components/agent-roster"
 import { AgentProfile } from "@/components/agent-profile"
@@ -22,6 +23,7 @@ import { ActivityLog } from "@/components/activity-log"
 import { TeamManager } from "@/components/team-manager"
 import { ConnectorLibrary } from "@/components/connector-library"
 import { FileBrowser } from "@/components/file-browser"
+import { ModelSandbox } from "@/components/model-sandbox"
 import type {
   Agent,
   AgentConfig,
@@ -88,6 +90,7 @@ export default function DashboardPage() {
 
   // Settings sub-tab
   const [settingsTab, setSettingsTab] = useState<"general" | "team" | "connectors" | "approvals" | "skills" | "decisions" | "activity" | "export">("general")
+  const [modelsTab, setModelsTab] = useState<"config" | "sandbox">("config")
 
   // Company general form state
   const [companyName, setCompanyName] = useState("")
@@ -1004,7 +1007,26 @@ export default function DashboardPage() {
 
       {view === "models" && (
         <div className="p-6 max-w-5xl">
-          <ModelConfig />
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setModelsTab("config")}
+              className={cn("px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                modelsTab === "config" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Configuration
+            </button>
+            <button
+              onClick={() => setModelsTab("sandbox")}
+              className={cn("px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                modelsTab === "sandbox" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Sandbox
+            </button>
+          </div>
+          {modelsTab === "config" && <ModelConfig />}
+          {modelsTab === "sandbox" && <ModelSandbox />}
         </div>
       )}
 
