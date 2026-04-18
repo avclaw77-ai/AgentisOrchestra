@@ -566,7 +566,7 @@ const server = http.createServer((req, res) => {
   let body = ""
   req.on("data", (chunk) => (body += chunk))
   req.on("end", async () => {
-    let parsed: { channel: string; message: string; departmentId?: string }
+    let parsed: { channel: string; message: string; departmentId?: string; conversationId?: string }
     try {
       parsed = JSON.parse(body)
     } catch {
@@ -575,7 +575,7 @@ const server = http.createServer((req, res) => {
       return
     }
 
-    const { channel, message, departmentId } = parsed
+    const { channel, message, departmentId, conversationId } = parsed
 
     if (!channel || !message) {
       res.writeHead(400, { "Content-Type": "application/json" })
@@ -613,9 +613,10 @@ const server = http.createServer((req, res) => {
     try {
       // Route chat through the heartbeat engine
       await heartbeatEngine.triggerChat(
-        channel,         // agent ID = channel
+        channel,
         message,
         departmentId || undefined,
+        conversationId || undefined, // stored on messages for multi-conversation
         {
           onToken: (token: string) => {
             if (!cancelled) send("token", { token })

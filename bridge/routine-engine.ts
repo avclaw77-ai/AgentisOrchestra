@@ -263,7 +263,8 @@ class RoutineEngine {
       heartbeatEngine.triggerChat(
         step.agent_id,
         prompt,
-        undefined, // departmentId -- heartbeat will look it up from agent
+        undefined, // departmentId
+        undefined, // conversationId
         {
           onComplete: (result: string) => {
             clearTimeout(timeout)

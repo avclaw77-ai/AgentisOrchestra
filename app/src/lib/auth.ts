@@ -2,9 +2,11 @@ import { cookies } from "next/headers"
 import { db } from "@/db"
 import { users, sessions, userDepartments } from "@/db/schema"
 import { eq } from "drizzle-orm"
-import { hashToken } from "@/lib/crypto"
+import { hashToken, generateSessionToken } from "@/lib/crypto"
 
 const COOKIE_NAME = "ao_session"
+const ROTATION_THRESHOLD_MS = 24 * 60 * 60 * 1000 // 24 hours
+const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
 
 export type UserRole = "admin" | "member" | "viewer"
 
@@ -31,6 +33,37 @@ export async function getSessionUser(): Promise<UserProfile | null> {
     .limit(1)
 
   if (!session || session.expiresAt < new Date()) return null
+
+  // Session rotation: if token is >24h old, issue a new one
+  const sessionAge = Date.now() - new Date(session.createdAt).getTime()
+  if (sessionAge > ROTATION_THRESHOLD_MS) {
+    try {
+      const newToken = generateSessionToken()
+      const newHash = hashToken(newToken)
+      const newExpiry = new Date(Date.now() + SESSION_DURATION_MS)
+
+      // Create new session + delete old one
+      await db.insert(sessions).values({
+        id: `sess-${Date.now().toString(36)}`,
+        userId: session.userId,
+        tokenHash: newHash,
+        expiresAt: newExpiry,
+      })
+      await db.delete(sessions).where(eq(sessions.id, session.id))
+
+      // Set new cookie
+      const cookieStore = await cookies()
+      cookieStore.set(COOKIE_NAME, newToken, {
+        httpOnly: true,
+        secure: process.env.SECURE_COOKIES === "true",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60,
+      })
+    } catch {
+      // Rotation failed -- non-blocking, old session still valid
+    }
+  }
 
   const [user] = await db
     .select({ id: users.id, email: users.email, name: users.name, role: users.role })

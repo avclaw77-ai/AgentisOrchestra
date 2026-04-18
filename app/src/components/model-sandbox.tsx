@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Send, Loader2, Cpu, Zap, DollarSign, Clock } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -63,6 +63,7 @@ const PRESETS = [
 ]
 
 export function ModelSandbox() {
+  const [allowedModelIds, setAllowedModelIds] = useState<string[]>([])
   const [selectedModel, setSelectedModel] = useState(MODELS[1].id) // default sonnet
   const [prompt, setPrompt] = useState("")
   const [systemPrompt, setSystemPrompt] = useState("")
@@ -70,6 +71,23 @@ export function ModelSandbox() {
   const [loading, setLoading] = useState(false)
   const [showSystem, setShowSystem] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
+
+  // Fetch allowed models (governance)
+  useEffect(() => {
+    fetch("/api/models/allowed")
+      .then((res) => (res.ok ? res.json() : { allowedModels: [] }))
+      .then((data) => {
+        const ids = (data.allowedModels || []).map((m: { id: string }) => m.id)
+        setAllowedModelIds(ids)
+      })
+      .catch(() => setAllowedModelIds([]))
+  }, [])
+
+  // Filter models by governance allowed list (empty = show all)
+  const visibleModels =
+    allowedModelIds.length > 0
+      ? MODELS.filter((m) => allowedModelIds.includes(m.id))
+      : MODELS
 
   async function handleSend() {
     if (!prompt.trim() || loading) return
@@ -170,7 +188,7 @@ export function ModelSandbox() {
       <div className="bg-card border border-border rounded-xl p-4 mb-4">
         <label className="text-xs font-medium text-muted-foreground block mb-2">Select Model</label>
         <div className="flex flex-wrap gap-2">
-          {MODELS.map((m) => (
+          {visibleModels.map((m) => (
             <button
               key={m.id}
               onClick={() => setSelectedModel(m.id)}

@@ -44,6 +44,7 @@ export function _sql(): ReturnType<typeof postgres> | null {
 export interface SaveChatMessageParams {
   departmentId?: string | null
   channel: string
+  conversationId?: string | null
   role: "user" | "assistant"
   content: string
   modelId?: string | null
@@ -56,10 +57,11 @@ export async function saveChatMessage(params: SaveChatMessageParams): Promise<vo
   if (!isReady()) return
   try {
     await sql`
-      INSERT INTO chat_messages (department_id, channel, role, content, model_id, run_id, tokens_used, metadata)
+      INSERT INTO chat_messages (department_id, channel, conversation_id, role, content, model_id, run_id, tokens_used, metadata)
       VALUES (
         ${params.departmentId ?? null},
         ${params.channel},
+        ${params.conversationId ?? null},
         ${params.role},
         ${params.content},
         ${params.modelId ?? null},

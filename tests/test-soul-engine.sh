@@ -92,7 +92,9 @@ echo "Target: $BASE_URL"
 echo ""
 
 echo -e "${YELLOW}[AUTH] Logging in...${NC}"
-LOGIN_RES=$(api POST "/api/auth" '{"action":"login","email":"al.veilleux@gmail.com","password":"Pixel@V2026"}')
+TEST_EMAIL="${TEST_EMAIL:-admin@test.com}"
+TEST_PASS="${TEST_PASS:-TestPass123!}"
+LOGIN_RES=$(api POST "/api/auth" "{\"action\":\"login\",\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASS\"}")
 LOGIN_OK=$(echo "$LOGIN_RES" | python3 -c "import sys,json; d=json.load(sys.stdin); print('ok' if d.get('user') else 'fail')" 2>/dev/null || echo "fail")
 if [ "$LOGIN_OK" != "ok" ]; then
   echo -e "${RED}Login failed. Trying to get any agent for testing...${NC}"
@@ -236,9 +238,10 @@ PROPOSAL=$(api POST "/api/agents/$AGENT_ID/proposals" '{
 PROP_ID=$(echo "$PROPOSAL" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',0))" 2>/dev/null || echo "0")
 assert_gte "$PROP_ID" "1" "Persona proposal created"
 
-# List pending proposals
+# List pending proposals (check before approving)
+sleep 1
 PENDING=$(api GET "/api/agents/$AGENT_ID/proposals?status=pending")
-PENDING_COUNT=$(echo "$PENDING" | python3 -c "import sys,json; d=json.load(sys.stdin); items=d if isinstance(d,list) else d.get('proposals',[]); print(len(items))" 2>/dev/null || echo "0")
+PENDING_COUNT=$(echo "$PENDING" | python3 -c "import sys,json; d=json.load(sys.stdin); items=d if isinstance(d,list) else d.get('items', d.get('proposals',[])); print(len(items))" 2>/dev/null || echo "0")
 assert_gte "$PENDING_COUNT" "1" "At least 1 pending proposal"
 
 # Approve the proposal
@@ -283,7 +286,7 @@ assert_gte "$EVAL2_ID" "1" "Second self-evaluation created"
 
 # List self-evaluations
 EVAL_LIST=$(api GET "/api/agents/$AGENT_ID/self-eval")
-EVAL_COUNT=$(echo "$EVAL_LIST" | python3 -c "import sys,json; d=json.load(sys.stdin); items=d if isinstance(d,list) else d.get('evaluations',[]); print(len(items))" 2>/dev/null || echo "0")
+EVAL_COUNT=$(echo "$EVAL_LIST" | python3 -c "import sys,json; d=json.load(sys.stdin); items=d if isinstance(d,list) else d.get('items', d.get('evaluations',[])); print(len(items))" 2>/dev/null || echo "0")
 assert_gte "$EVAL_COUNT" "2" "At least 2 self-evaluations stored"
 
 echo ""

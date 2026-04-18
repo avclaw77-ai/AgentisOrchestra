@@ -94,6 +94,9 @@ export function AgentProfile({
   const [toolPermissions, setToolPermissions] = useState<string[]>(config?.toolPermissions || [])
   const [saving, setSaving] = useState(false)
 
+  // Allowed models (governance)
+  const [allowedModelIds, setAllowedModelIds] = useState<string[]>([])
+
   // AI configure state
   const [aiDescription, setAiDescription] = useState("")
   const [aiGenerating, setAiGenerating] = useState(false)
@@ -126,6 +129,17 @@ export function AgentProfile({
     totalCostCents: number
     tasksCompleted: number
   } | null>(null)
+
+  // Fetch allowed models (governance)
+  useEffect(() => {
+    fetch("/api/models/allowed")
+      .then((res) => (res.ok ? res.json() : { allowedModels: [] }))
+      .then((data) => {
+        const ids = (data.allowedModels || []).map((m: { id: string }) => m.id)
+        setAllowedModelIds(ids)
+      })
+      .catch(() => setAllowedModelIds([]))
+  }, [])
 
   // Sync form when config changes
   useEffect(() => {
@@ -243,6 +257,11 @@ export function AgentProfile({
   }
 
   const dept = departments.find((d) => d.id === agent.departmentId)
+  // Filter models by governance allowed list (empty = show all)
+  const visibleModels =
+    allowedModelIds.length > 0
+      ? MODEL_OPTIONS.filter((m) => allowedModelIds.includes(m.id))
+      : MODEL_OPTIONS
   const modelOption = MODEL_OPTIONS.find((m) => m.id === model)
   const totalTokens = runtimeStats?.totalTokens ?? 0
   const totalCostCents = runtimeStats?.totalCostCents ?? 0
@@ -520,7 +539,7 @@ export function AgentProfile({
                     onChange={(e) => setModel(e.target.value)}
                     className="w-full bg-inset rounded-lg px-3 py-2 text-sm outline-none appearance-none pr-20"
                   >
-                    {MODEL_OPTIONS.map((m) => (
+                    {visibleModels.map((m) => (
                       <option key={m.id} value={m.id}>
                         {m.name}
                       </option>

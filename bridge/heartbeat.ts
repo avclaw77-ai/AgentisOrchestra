@@ -316,6 +316,7 @@ class HeartbeatEngine {
       await db.saveChatMessage({
         departmentId: wakeup.department_id,
         channel: agentId,
+        conversationId: (wakeup.payload?.conversationId as string) ?? null,
         role: "assistant",
         content: fullResult,
         modelId: route.model.id,
@@ -417,6 +418,7 @@ class HeartbeatEngine {
     agentId: string,
     message: string,
     departmentId?: string,
+    conversationId?: string,
     callbacks?: {
       onToken?: (token: string) => void
       onToolUse?: (tool: string, input: unknown) => void
@@ -435,6 +437,7 @@ class HeartbeatEngine {
     await db.saveChatMessage({
       departmentId: departmentId ?? null,
       channel: agentId,
+      conversationId: conversationId ?? null,
       role: "user",
       content: message,
     })
@@ -446,7 +449,7 @@ class HeartbeatEngine {
       agentId,
       source: "chat",
       reason: message,
-      payload: { prompt: message },
+      payload: { prompt: message, conversationId: conversationId ?? null },
     })
 
     // Pre-create the run
