@@ -107,6 +107,35 @@ These evaluations feed into the Layer 2 refinement engine. Recurring patterns (l
 - Non-blocking: catch errors silently, never delays the main run
 - `GET /api/agents/{id}/self-eval` -- paginated access to evaluation history
 
+### Refinement Engine (the brain of Layer 2)
+
+The refinement engine is the automated analysis system that turns raw feedback signals into actionable persona proposals. It runs on-demand (via the "Refine" button in the Soul tab) or can be scheduled as a routine.
+
+**How it works:**
+1. Aggregates 30 days of signals: thumbs up/down counts, negative comments, pulse ratings, self-evaluations, run success/failure rates
+2. Builds a structured analysis prompt with the current persona + signal summary
+3. Calls the LLM (using the router's best available model for analysis tasks)
+4. Parses the structured JSON response into 1-3 persona proposals
+5. Saves proposals to the `persona_proposals` table with confidence levels and evidence counts
+6. Proposals appear in the Soul tab for human review (approve/reject/defer)
+
+**What's built:**
+- `POST /agents/{id}/refine` on bridge -- full aggregation + LLM analysis pipeline
+- `POST /api/agents/{id}/refine` app proxy (admin only, 90s timeout)
+- "Refine" button in agent profile Soul tab with toast feedback
+- Proposals saved with `source: 'refinement_engine'` for audit trail
+
+### Email Notifications (complementary system)
+
+When approvals or escalations are created, the system sends email notifications to the admin. Configured via SMTP environment variables. Silent no-op if not configured -- the system works fine without email.
+
+**What's built:**
+- `app/src/lib/mailer.ts` -- nodemailer utility with pre-built templates
+- `approvalCreatedEmail()` -- branded HTML template with approval details + "Review in Orchestra" button
+- `escalationEmail()` -- amber-themed alert for agent blockers
+- Wired into `POST /api/approvals` -- fires after every approval creation
+- Non-blocking: errors are logged but never break the approval flow
+
 ### Agent Escalation (complementary system)
 
 When an agent hits a genuine roadblock -- needs a decision, lacks permissions, or can't proceed -- it can escalate to the human team:
@@ -159,12 +188,14 @@ Every deployment generates persona evolution patterns. When a tone refinement wo
 | Persona Proposals | UI (diff review) | 229 | Production |
 | Persona History | UI (version timeline) | 239 | Production |
 | Feedback API | API (5 routes) | 591 | Production |
+| Refinement Engine | Bridge (LLM analysis) | 150 | Production |
 | Self-Evaluation Hook | Bridge (heartbeat) | 80 | Production |
 | Escalation Tools | MCP (2 tools) | 139 | Production |
+| Email Notifications | Mailer (nodemailer) | 130 | Production |
 | Database | Schema (5 tables) | ~100 | Production |
 | Test Suite | E2E (27 assertions) | 385 | 27/27 green |
 
-**Total: ~2,400 lines of production code, tested on live VPS.**
+**Total: ~2,900 lines of production code, tested on live VPS.**
 
 ---
 

@@ -3,6 +3,7 @@ import { db } from "@/db"
 import { approvalRequests, activityLog } from "@/db/schema"
 import { eq, desc, and } from "drizzle-orm"
 import { getSessionUser } from "@/lib/auth"
+import { sendNotification, approvalCreatedEmail } from "@/lib/mailer"
 
 // GET /api/approvals?status=pending&departmentId=eng
 export async function GET(req: NextRequest) {
@@ -75,6 +76,15 @@ export async function POST(req: NextRequest) {
     task: String(created.id),
     metadata: { type, title },
   })
+
+  // Send email notification (non-blocking, silent on failure)
+  sendNotification(approvalCreatedEmail({
+    type,
+    title,
+    description,
+    agentName: requestedByAgentId || undefined,
+    departmentName: departmentId || undefined,
+  })).catch(() => {})
 
   return NextResponse.json(created, { status: 201 })
 }
