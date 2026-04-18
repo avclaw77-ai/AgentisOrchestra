@@ -338,6 +338,16 @@ print('Done -- bridge stubbed, app points to host')
 
 **Note:** `docker-compose.override.yml` with `ports: []` does NOT work -- compose merges lists. The Python approach above replaces the entire bridge service definition.
 
+**BRIDGE_URL by deployment mode:**
+
+| Mode | BRIDGE_URL | Why |
+|------|-----------|-----|
+| Local dev (no Docker) | `http://localhost:3847` (default) | Both app and bridge run on host |
+| Mac Mini (launchd) | `http://localhost:3847` (default) | Both run on host via launchd |
+| VPS (Docker + host bridge) | `http://host.docker.internal:3847` | App is in Docker, bridge is on host. The Python script above sets this + adds `extra_hosts: host.docker.internal:host-gateway` which works on Linux Docker 20.10+ |
+
+Never hardcode a specific IP address (like 172.17.0.1) -- it varies between hosts. Use `host.docker.internal` with `extra_hosts` for portability.
+
 **Step F: Allow Docker-to-host traffic (firewall)**
 
 The app container needs to reach port 3847 on the host. Find your Docker subnet and open it:
