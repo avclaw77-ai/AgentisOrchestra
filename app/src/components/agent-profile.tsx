@@ -472,7 +472,7 @@ export function AgentProfile({
 
               {/* Display Name */}
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Display Name</label>
+                <label className="text-xs font-medium text-muted-foreground" title="A friendly name employees see instead of the technical agent ID">Display Name</label>
                 <input
                   type="text"
                   value={displayName}
@@ -487,7 +487,7 @@ export function AgentProfile({
 
               {/* Persona */}
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Persona / System Prompt</label>
+                <label className="text-xs font-medium text-muted-foreground" title="Instructions that define the agent's personality, expertise, and behavior. This is the system prompt sent with every interaction.">Persona / System Prompt</label>
                 <textarea
                   value={persona}
                   onChange={(e) => setPersona(e.target.value)}
@@ -543,7 +543,7 @@ export function AgentProfile({
 
               {/* Guardrails */}
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Guardrails</label>
+                <label className="text-xs font-medium text-muted-foreground" title="Rules and constraints the agent must follow. One per line. Examples: 'Never delete production data', 'Always ask before spending over $10'">Guardrails</label>
                 <textarea
                   value={guardrails}
                   onChange={(e) => setGuardrails(e.target.value)}
@@ -616,7 +616,7 @@ export function AgentProfile({
 
               {/* Budget */}
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Monthly Budget (USD)</label>
+                <label className="text-xs font-medium text-muted-foreground" title="Maximum monthly API spend for this agent. Auto-paused at 100% of budget.">Monthly Budget (USD)</label>
                 <div className="relative mt-1">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
                   <input

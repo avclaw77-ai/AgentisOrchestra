@@ -101,7 +101,7 @@ export function CreateTaskDialog({
           <div className="p-6 space-y-4">
             {/* Title */}
             <div>
-              <label className="text-sm font-medium">Title</label>
+              <label className="text-sm font-medium" title="A short, actionable description of what needs to be done">Title</label>
               <input
                 type="text"
                 value={title}
@@ -114,7 +114,7 @@ export function CreateTaskDialog({
 
             {/* Department */}
             <div>
-              <label className="text-sm font-medium">Department</label>
+              <label className="text-sm font-medium" title="Which department owns this task. Company-wide tasks are visible to the CEO agent.">Department</label>
               <select
                 value={departmentId || ""}
                 onChange={(e) => {
@@ -135,7 +135,7 @@ export function CreateTaskDialog({
 
             {/* Assign to */}
             <div>
-              <label className="text-sm font-medium">Assign to</label>
+              <label className="text-sm font-medium" title="The agent responsible for this task. They'll pick it up on their next heartbeat.">Assign to</label>
               <select
                 value={assignedTo || ""}
                 onChange={(e) => setAssignedTo(e.target.value || null)}
@@ -157,7 +157,7 @@ export function CreateTaskDialog({
 
             {/* Priority */}
             <div>
-              <label className="text-sm font-medium">Priority</label>
+              <label className="text-sm font-medium" title="Higher priority tasks are picked up first by agents. Critical = immediate attention.">Priority</label>
               <div className="flex gap-2 mt-1">
                 {PRIORITIES.map((p) => (
                   <button
@@ -178,7 +178,7 @@ export function CreateTaskDialog({
 
             {/* Phase */}
             <div>
-              <label className="text-sm font-medium">Phase</label>
+              <label className="text-sm font-medium" title="The current workflow phase. Helps track where in the development lifecycle this task sits.">Phase</label>
               <select
                 value={phase || ""}
                 onChange={(e) => setPhase(e.target.value || null)}

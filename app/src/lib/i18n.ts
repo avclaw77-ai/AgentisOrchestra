@@ -111,6 +111,69 @@ const translations: Record<Locale, Record<string, string>> = {
     "plugins.status_loading": "Loading",
     "plugins.crashes": "{{count}} crashes",
 
+    // Navigation (new)
+    "nav.files": "Files",
+    "nav.approvals": "Approvals",
+
+    // Search
+    "search.placeholder": "Search agents, tasks, pages...",
+    "search.no_results": "No results found",
+    "search.navigation": "Navigation",
+    "search.agents": "Agents",
+    "search.tasks": "Tasks",
+    "search.goals": "Goals",
+    "search.routines": "Routines",
+
+    // Conversations
+    "conversations.title": "Conversations",
+    "conversations.new": "New conversation",
+    "conversations.none": "No conversations yet",
+
+    // Task detail
+    "tasks.dependencies": "Dependencies",
+    "tasks.blocked_by": "Blocked by",
+    "tasks.add_dependency": "Add dependency...",
+    "tasks.due_date": "Due Date",
+    "tasks.attachments": "Attachments",
+    "tasks.upload": "Upload",
+    "tasks.no_attachments": "No attachments",
+
+    // Agent profile
+    "agent.tool_permissions": "Tool Permissions",
+    "agent.pause": "Pause agent",
+    "agent.resume": "Resume agent",
+    "agent.run_now": "Run Now",
+
+    // Dashboard
+    "dashboard.active_agents": "Active Agents",
+    "dashboard.tasks_in_progress": "Tasks In Progress",
+    "dashboard.todays_runs": "Today's Runs",
+    "dashboard.monthly_spend": "Monthly Spend",
+    "dashboard.agent_team": "Agent Team",
+    "dashboard.recent_activity": "Recent Activity",
+    "dashboard.active_routines": "Active Routines",
+
+    // Onboarding
+    "onboarding.get_started": "Get started",
+    "onboarding.completed": "{{done}} of {{total}} completed",
+    "onboarding.create_department": "Create a department",
+    "onboarding.add_agents": "Add agents to your team",
+    "onboarding.first_chat": "Chat with an agent",
+    "onboarding.create_task": "Create a task",
+    "onboarding.enable_heartbeat": "Enable a heartbeat",
+
+    // System logs
+    "logs.title": "System Logs",
+    "logs.auto_refresh": "Auto-refresh",
+    "logs.all_levels": "All Levels",
+    "logs.all_sources": "All Sources",
+    "logs.no_logs": "No logs available",
+
+    // Models
+    "models.configuration": "Configuration",
+    "models.sandbox": "Sandbox",
+    "models.api_keys": "API Keys",
+
     // Common
     "common.save": "Save",
     "common.cancel": "Cancel",
@@ -122,6 +185,13 @@ const translations: Record<Locale, Record<string, string>> = {
     "common.error": "Error",
     "common.success": "Success",
     "common.connected": "Connected",
+    "common.search": "Search",
+    "common.filter": "Filter",
+    "common.upload": "Upload",
+    "common.download": "Download",
+    "common.retry": "Retry",
+    "common.stop": "Stop",
+    "common.copy": "Copy",
   },
   fr: {
     // Shell / Navigation
@@ -217,6 +287,69 @@ const translations: Record<Locale, Record<string, string>> = {
     "plugins.status_loading": "Chargement",
     "plugins.crashes": "{{count}} plantages",
 
+    // Navigation (new)
+    "nav.files": "Fichiers",
+    "nav.approvals": "Approbations",
+
+    // Search
+    "search.placeholder": "Chercher agents, taches, pages...",
+    "search.no_results": "Aucun resultat",
+    "search.navigation": "Navigation",
+    "search.agents": "Agents",
+    "search.tasks": "Taches",
+    "search.goals": "Objectifs",
+    "search.routines": "Routines",
+
+    // Conversations
+    "conversations.title": "Conversations",
+    "conversations.new": "Nouvelle conversation",
+    "conversations.none": "Aucune conversation",
+
+    // Task detail
+    "tasks.dependencies": "Dependances",
+    "tasks.blocked_by": "Bloque par",
+    "tasks.add_dependency": "Ajouter une dependance...",
+    "tasks.due_date": "Date limite",
+    "tasks.attachments": "Pieces jointes",
+    "tasks.upload": "Telecharger",
+    "tasks.no_attachments": "Aucune piece jointe",
+
+    // Agent profile
+    "agent.tool_permissions": "Permissions d'outils",
+    "agent.pause": "Mettre en pause",
+    "agent.resume": "Reprendre",
+    "agent.run_now": "Executer",
+
+    // Dashboard
+    "dashboard.active_agents": "Agents actifs",
+    "dashboard.tasks_in_progress": "Taches en cours",
+    "dashboard.todays_runs": "Executions du jour",
+    "dashboard.monthly_spend": "Depenses mensuelles",
+    "dashboard.agent_team": "Equipe d'agents",
+    "dashboard.recent_activity": "Activite recente",
+    "dashboard.active_routines": "Routines actives",
+
+    // Onboarding
+    "onboarding.get_started": "Pour commencer",
+    "onboarding.completed": "{{done}} sur {{total}} completes",
+    "onboarding.create_department": "Creer un departement",
+    "onboarding.add_agents": "Ajouter des agents a l'equipe",
+    "onboarding.first_chat": "Discuter avec un agent",
+    "onboarding.create_task": "Creer une tache",
+    "onboarding.enable_heartbeat": "Activer un battement de coeur",
+
+    // System logs
+    "logs.title": "Journaux systeme",
+    "logs.auto_refresh": "Rafraichissement auto",
+    "logs.all_levels": "Tous les niveaux",
+    "logs.all_sources": "Toutes les sources",
+    "logs.no_logs": "Aucun journal disponible",
+
+    // Models
+    "models.configuration": "Configuration",
+    "models.sandbox": "Bac a sable",
+    "models.api_keys": "Cles API",
+
     // Common
     "common.save": "Sauvegarder",
     "common.cancel": "Annuler",
@@ -228,6 +361,13 @@ const translations: Record<Locale, Record<string, string>> = {
     "common.error": "Erreur",
     "common.success": "Succes",
     "common.connected": "Connecte",
+    "common.search": "Rechercher",
+    "common.filter": "Filtrer",
+    "common.upload": "Telecharger",
+    "common.download": "Telecharger",
+    "common.retry": "Reessayer",
+    "common.stop": "Arreter",
+    "common.copy": "Copier",
   },
 }
 
