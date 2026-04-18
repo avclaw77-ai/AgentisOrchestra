@@ -870,3 +870,106 @@ export const documents = pgTable("documents", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
+
+// =============================================================================
+// SOUL ENGINE -- Agent persona evolution (Layers 1-3)
+// =============================================================================
+
+// Feedback from users (micro-feedback + pulse checks)
+export const agentFeedback = pgTable(
+  "agent_feedback",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    agentId: text("agent_id")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
+    type: text("type").notNull(), // 'thumbs', 'task_rating', 'pulse_daily', 'pulse_weekly', 'pulse_monthly'
+    rating: integer("rating"), // -1/0/1 for thumbs, 1-5 for ratings
+    comment: text("comment"),
+    contextType: text("context_type"), // 'chat', 'task', 'run', 'approval'
+    contextId: text("context_id"),
+    userId: text("user_id"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("agent_feedback_agent_idx").on(t.agentId),
+    index("agent_feedback_type_idx").on(t.type),
+  ]
+)
+
+// Persona versions (full history with structured data)
+export const personaVersions = pgTable(
+  "persona_versions",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    agentId: text("agent_id")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    personaText: text("persona_text").notNull(),
+    structuredPersona: jsonb("structured_persona"), // {role, priorities, guardrails, tone, tools, hierarchy}
+    changeSummary: text("change_summary"),
+    changeSource: text("change_source"), // 'manual', 'soul_builder', 'refinement_engine', 'self_evolution'
+    approvedBy: text("approved_by"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("persona_versions_agent_idx").on(t.agentId)]
+)
+
+// Refinement proposals (from Layer 2/3 engines)
+export const personaProposals = pgTable(
+  "persona_proposals",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    agentId: text("agent_id")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
+    proposalType: text("proposal_type").notNull(), // 'add_guardrail', 'modify_tone', 'adjust_priority', 'add_skill', 'remove_behavior'
+    section: text("section"), // 'role', 'priorities', 'guardrails', 'tone', 'tools', 'hierarchy'
+    currentValue: text("current_value"),
+    proposedValue: text("proposed_value").notNull(),
+    reasoning: text("reasoning").notNull(),
+    confidence: text("confidence").default("medium"), // 'high', 'medium', 'low'
+    source: text("source").notNull(), // 'user_feedback', 'run_analysis', 'self_evaluation', 'correction_pattern'
+    evidenceCount: integer("evidence_count").default(1),
+    status: text("status").default("pending"), // 'pending', 'approved', 'rejected', 'deferred'
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("persona_proposals_agent_idx").on(t.agentId),
+    index("persona_proposals_status_idx").on(t.status),
+  ]
+)
+
+// Self-evaluations from agents (Layer 3)
+export const agentSelfEvaluations = pgTable(
+  "agent_self_evaluations",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    agentId: text("agent_id")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
+    runId: text("run_id"),
+    whatWorked: text("what_worked"),
+    whatWasHard: text("what_was_hard"),
+    wouldChangeTo: text("would_change_to"),
+    confidenceInResult: integer("confidence_in_result"), // 0-100
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("agent_self_eval_agent_idx").on(t.agentId)]
+)
+
+// Feedback preferences per user (optional frequency control)
+export const feedbackPreferences = pgTable("feedback_preferences", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: text("user_id").notNull(),
+  frequency: text("frequency").default("light"), // 'active', 'light', 'off'
+  dailyDismissCount: integer("daily_dismiss_count").default(0),
+  weeklyDismissCount: integer("weekly_dismiss_count").default(0),
+  lastDailyShown: timestamp("last_daily_shown"),
+  lastWeeklyShown: timestamp("last_weekly_shown"),
+  lastMonthlyShown: timestamp("last_monthly_shown"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})

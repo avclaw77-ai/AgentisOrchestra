@@ -319,6 +319,13 @@ class HeartbeatEngine {
       // Finish the wakeup request
       await db.finishWakeup(wakeup.id)
 
+      // Layer 3: Self-evaluation (non-chat heartbeat runs only, fire-and-forget)
+      if (!isChat && fullResult && fullResult.length > 50) {
+        this.triggerSelfEvaluation(agentId, runId, prompt || "", fullResult).catch((err) => {
+          console.warn("[heartbeat] Self-evaluation failed (non-blocking):", err instanceof Error ? err.message : err)
+        })
+      }
+
       // Resolve pending promise (for chat flow)
       pending?.resolve(fullResult)
 
@@ -516,6 +523,88 @@ class HeartbeatEngine {
       await sql`UPDATE heartbeat_runs SET status = ${status} WHERE id = ${runId}`
     } catch (err) {
       console.error("[heartbeat] updateRunStatus error:", err)
+    }
+  }
+
+  /**
+   * Layer 3: Post-run self-evaluation.
+   * Uses a lightweight LLM call to have the agent reflect on its own output.
+   * Fire-and-forget -- never blocks the main run flow.
+   */
+  private async triggerSelfEvaluation(
+    agentId: string,
+    runId: string,
+    prompt: string,
+    result: string
+  ): Promise<void> {
+    const evalPrompt = `You just completed a task. Briefly evaluate your own performance in JSON format.
+
+Task prompt: "${prompt.slice(0, 500)}"
+Your output (first 500 chars): "${result.slice(0, 500)}"
+
+Respond with ONLY valid JSON, no markdown:
+{
+  "whatWorked": "one sentence on what went well",
+  "whatWasHard": "one sentence on what was challenging",
+  "wouldChangeTo": "one sentence on what you'd do differently next time",
+  "confidenceInResult": 75
+}
+
+confidenceInResult is 0-100. Be honest and specific.`
+
+    try {
+      // Use the cheapest available model for self-eval
+      const route = routeModel({
+        taskType: "monitoring" as TaskType,
+        preferCLI: true,
+      })
+
+      // Collect the result via callbacks
+      let evalOutput = ""
+      const abortController = new AbortController()
+      const evalTimeout = setTimeout(() => abortController.abort(), 30_000)
+      try {
+        await executeWithProvider(
+          route.model.provider,
+          {
+            model: route.model.id,
+            message: evalPrompt,
+            signal: abortController.signal,
+            maxTurns: 1,
+            timeoutMs: 30_000,
+            verbose: false,
+          },
+          {
+            onToken: (token: string) => { evalOutput += token },
+            onToolUse: () => {},
+            onComplete: (result: string) => { if (result) evalOutput = result },
+            onError: (err: string) => { console.warn("[heartbeat] Self-eval error:", err) },
+          }
+        )
+      } finally {
+        clearTimeout(evalTimeout)
+      }
+
+      // Parse the JSON response
+      const jsonMatch = evalOutput.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) return
+
+      const parsed = JSON.parse(jsonMatch[0])
+
+      // Save to database
+      const { _sql } = await import("./db.js")
+      const sql = _sql()
+      if (!sql) return
+
+      await sql`
+        INSERT INTO agent_self_evaluations (agent_id, run_id, what_worked, what_was_hard, would_change_to, confidence_in_result)
+        VALUES (${agentId}, ${runId}, ${parsed.whatWorked || null}, ${parsed.whatWasHard || null}, ${parsed.wouldChangeTo || null}, ${parsed.confidenceInResult || null})
+      `
+
+      console.log(`[heartbeat] Self-evaluation saved for ${agentId} run ${runId}`)
+    } catch (err) {
+      // Non-blocking -- just log and move on
+      console.warn("[heartbeat] Self-eval parse/save failed:", err instanceof Error ? err.message : err)
     }
   }
 }

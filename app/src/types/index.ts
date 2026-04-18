@@ -519,3 +519,83 @@ export interface CompanyTemplate {
     triggers: Array<{ type: string; cronExpression?: string }>
   }>
 }
+
+// =============================================================================
+// Soul Engine -- Agent persona evolution
+// =============================================================================
+
+export interface StructuredPersona {
+  role: string
+  priorities: string[]
+  guardrails: string[]
+  tone: string
+  tools: string[]
+  hierarchy: { reportsTo?: string; escalatesTo?: string }
+  context?: string
+}
+
+export interface AgentFeedback {
+  id: number
+  agentId: string
+  type: "thumbs" | "task_rating" | "pulse_daily" | "pulse_weekly" | "pulse_monthly"
+  rating: number | null
+  comment: string | null
+  contextType: string | null
+  contextId: string | null
+  userId: string | null
+  createdAt: string
+}
+
+export interface PersonaVersion {
+  id: number
+  agentId: string
+  version: number
+  personaText: string
+  structuredPersona: StructuredPersona | null
+  changeSummary: string | null
+  changeSource: "manual" | "soul_builder" | "refinement_engine" | "self_evolution"
+  approvedBy: string | null
+  createdAt: string
+}
+
+export interface PersonaProposal {
+  id: number
+  agentId: string
+  proposalType: string
+  section: string | null
+  currentValue: string | null
+  proposedValue: string
+  reasoning: string
+  confidence: "high" | "medium" | "low"
+  source: string
+  evidenceCount: number
+  status: "pending" | "approved" | "rejected" | "deferred"
+  decidedBy: string | null
+  decidedAt: string | null
+  createdAt: string
+}
+
+export interface AgentSelfEvaluation {
+  id: number
+  agentId: string
+  runId: string | null
+  whatWorked: string | null
+  whatWasHard: string | null
+  wouldChangeTo: string | null
+  confidenceInResult: number | null
+  createdAt: string
+}
+
+export interface FeedbackPreferences {
+  frequency: "active" | "light" | "off"
+  dailyDismissCount: number
+  weeklyDismissCount: number
+}
+
+export interface SoulBuilderStep {
+  id: string
+  question: string
+  placeholder: string
+  field: keyof StructuredPersona
+  type: "text" | "textarea" | "list"
+}
