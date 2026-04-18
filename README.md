@@ -117,7 +117,7 @@ No YAML. No config files. No CLI flags.
 
 ### Integration & Extensibility
 - 10 pre-built connector templates (Slack, HubSpot, GitHub, SMTP...)
-- MCP server with 21 tools
+- MCP server with 22 tools (including agent escalation)
 - Plugin system with Worker thread isolation
 - Company config export/import as templates
 - File browser with upload and preview
@@ -127,13 +127,15 @@ No YAML. No config files. No CLI flags.
 </table>
 
 ### Also includes
+- **Model Governance** -- admin selects which models are available org-wide, provider deduplication
+- **Agent Escalation** -- agents can request approval or report blockers via MCP tools
 - **Bilingual** -- English and Quebec French natively (not translated)
 - **Multi-user** -- Admin / member / viewer roles with department scoping
 - **Model Sandbox** -- test any model from the browser
 - **API Key management** -- AES-256-GCM encrypted, rotate from UI
+- **Session rotation** -- automatic token refresh every 24h
 - **Keyboard shortcuts** -- Cmd+K search, Cmd+1-9 navigation
 - **Responsive** -- works on desktop and mobile
-- **Loading skeletons** -- polished initial load experience
 
 ---
 
