@@ -76,16 +76,20 @@ export function routeModel(req: RouteRequest): RouteResult {
   const providers = availableProviders()
   const preferCLI = req.preferCLI !== false // default true
 
-  // 1. Agent-level override -- if the agent is pinned to a model, use it
+  // 1. Agent-level override -- if the agent has a model set in config, ALWAYS use it.
+  //    The router NEVER overrides a manually configured model.
+  //    Router auto-selection only happens when no model is explicitly set.
   if (req.agentModel) {
     const pinned = MODEL_REGISTRY.find((m) => m.id === req.agentModel)
     if (pinned && providers.has(pinned.provider)) {
       return {
         model: pinned,
-        reason: `Agent config pinned to ${pinned.name}`,
+        reason: `Agent config: ${pinned.name} (manually set)`,
         alternatives: [],
       }
     }
+    // Model set but not in registry or provider unavailable -- warn but continue to auto-select
+    console.warn(`[router] Agent model "${req.agentModel}" not available, falling back to auto-select`)
   }
 
   // 2. Research tasks -> always Perplexity if available

@@ -186,12 +186,28 @@ class HeartbeatEngine {
       // Update context snapshot on the run
       // (we already created it, just update)
 
-      // Route to best model -- use haiku for heartbeats, sonnet for chat
+      // Route to best model -- respect agent's configured model first
       const isChat = wakeup.source === "chat"
       const defaultTaskType = isChat ? "conversation" : "monitoring"
+
+      // Fetch agent's configured model from DB (always respect manual config)
+      let agentConfigModel = (wakeup.payload?.agentModel as string) || undefined
+      if (!agentConfigModel) {
+        try {
+          const { _sql } = await import("./db.js")
+          const sql = _sql()
+          if (sql) {
+            const [cfg] = await sql`SELECT model FROM agent_configs WHERE agent_id = ${agentId} LIMIT 1`
+            if (cfg?.model) agentConfigModel = cfg.model as string
+          }
+        } catch {
+          // fallback to router default
+        }
+      }
+
       const routeReq: RouteRequest = {
         taskType: (wakeup.payload?.taskType as TaskType) || defaultTaskType,
-        agentModel: (wakeup.payload?.agentModel as string) || undefined,
+        agentModel: agentConfigModel,
         needsSearch: !!wakeup.payload?.needsSearch,
         needsVision: !!wakeup.payload?.needsVision,
         needsTools: true,
