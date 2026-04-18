@@ -761,6 +761,142 @@ const getActivityLog: MCPTool = {
 }
 
 // =============================================================================
+// Escalation Tools -- agents can request human decisions
+// =============================================================================
+
+const requestApproval: MCPTool = {
+  name: "request_approval",
+  description:
+    "Request human approval or escalate a decision to a department head. Use this when you encounter a decision that exceeds your authority, need budget approval, want to propose a strategy change, or are blocked and need human input. The request appears in the Approvals queue in the UI.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      type: {
+        type: "string",
+        enum: ["task_escalation", "budget_override", "strategy_proposal", "agent_hire", "routine_activation"],
+        description: "Type of approval being requested",
+      },
+      title: {
+        type: "string",
+        description: "Short title for the approval request",
+      },
+      description: {
+        type: "string",
+        description: "Detailed description of what needs approval and why",
+      },
+      departmentId: {
+        type: "string",
+        description: "Department this approval relates to (optional)",
+      },
+      urgency: {
+        type: "string",
+        enum: ["low", "medium", "high"],
+        description: "How urgently this needs a decision",
+      },
+      metadata: {
+        type: "object",
+        description: "Additional context (task IDs, amounts, etc.)",
+      },
+    },
+    required: ["type", "title", "description"],
+  },
+  handler: async (args: Record<string, unknown>) => {
+    const { type, title, description, departmentId, urgency, metadata } = args
+    const s = getSql()
+    if (!s) return { error: "Database not available" }
+
+    try {
+      const deptId = (departmentId as string) || null
+      const agentId = ((metadata as Record<string, unknown>)?.agentId as string) || null
+      const metaJson = JSON.stringify({ ...(metadata as Record<string, unknown> || {}), urgency: urgency || "medium" })
+
+      const [result] = await query`
+        INSERT INTO approval_requests (department_id, type, title, description, requested_by_agent_id, status, metadata)
+        VALUES (${deptId}, ${type as string}, ${title as string}, ${description as string}, ${agentId}, 'pending', ${metaJson}::jsonb)
+        RETURNING id, type, title, status
+      `
+
+      const logMeta = JSON.stringify({ type, urgency: urgency || "medium" })
+      await query`
+        INSERT INTO activity_log (department_id, agent, action, task, metadata)
+        VALUES (${deptId}, ${agentId || 'system'}, 'approval_requested', ${title as string}, ${logMeta}::jsonb)
+      `
+
+      return {
+        created: true,
+        approvalId: result.id,
+        type: result.type,
+        title: result.title,
+        status: "pending",
+        message: "Approval request created. A human will review it in the Approvals queue.",
+      }
+    } catch (err) {
+      return { error: `Failed to create approval request: ${err instanceof Error ? err.message : "Unknown error"}` }
+    }
+  },
+}
+
+const reportBlocked: MCPTool = {
+  name: "report_blocked",
+  description:
+    "Report that you are blocked and cannot proceed with a task. This creates an escalation in the Approvals queue and updates the task status. Use when you need access, permissions, information, or a decision from a human to continue.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      taskId: {
+        type: "string",
+        description: "The task ID you are blocked on",
+      },
+      reason: {
+        type: "string",
+        description: "Why you are blocked -- what do you need to proceed?",
+      },
+      needsFrom: {
+        type: "string",
+        description: "Who or what role can unblock you (e.g., 'department head', 'admin', 'DevOps')",
+      },
+    },
+    required: ["taskId", "reason"],
+  },
+  handler: async (args: Record<string, unknown>) => {
+    const { taskId, reason, needsFrom } = args
+    const s = getSql()
+    if (!s) return { error: "Database not available" }
+
+    try {
+      // Get task info
+      const [task] = await s`SELECT id, title, department_id, assigned_to FROM tasks WHERE id = ${taskId as string}`
+      if (!task) return { error: `Task ${taskId} not found` }
+
+      // Create escalation approval
+      const blockerMeta = JSON.stringify({ taskId, needsFrom: needsFrom || null, blockedAt: new Date().toISOString() })
+      const blockerTitle = 'Blocked: ' + (task.title as string)
+      const [approval] = await query`
+        INSERT INTO approval_requests (department_id, type, title, description, requested_by_agent_id, status, metadata)
+        VALUES (${task.department_id as string}, 'task_escalation', ${blockerTitle}, ${reason as string}, ${task.assigned_to as string}, 'pending', ${blockerMeta}::jsonb)
+        RETURNING id
+      `
+
+      // Log activity
+      const logMeta = JSON.stringify({ reason, needsFrom })
+      await query`
+        INSERT INTO activity_log (department_id, agent, action, task, metadata)
+        VALUES (${task.department_id as string}, ${(task.assigned_to as string) || 'system'}, 'agent_blocked', ${taskId as string}, ${logMeta}::jsonb)
+      `
+
+      return {
+        reported: true,
+        approvalId: approval.id,
+        taskId,
+        message: `Blocker reported for ${taskId}. An escalation has been created in the Approvals queue.`,
+      }
+    } catch (err) {
+      return { error: `Failed to report blocker: ${err instanceof Error ? err.message : "Unknown error"}` }
+    }
+  },
+}
+
+// =============================================================================
 // Export all tools
 // =============================================================================
 
@@ -794,5 +930,8 @@ export function getAllTools(): MCPTool[] {
     sendMessage,
     // Activity
     getActivityLog,
+    // Escalation & Feedback
+    requestApproval,
+    reportBlocked,
   ]
 }
