@@ -22,6 +22,7 @@ interface RunStatus {
 
 interface LiveRunViewProps {
   runId: string
+  agentId: string
   agentName: string
   onClose: () => void
 }
@@ -36,7 +37,7 @@ const STATUS_CONFIG: Record<string, { icon: React.ReactNode; color: string; labe
   timed_out: { icon: <Clock size={14} />, color: "text-amber-500", label: "Timed Out" },
 }
 
-export function LiveRunView({ runId, agentName, onClose }: LiveRunViewProps) {
+export function LiveRunView({ runId, agentId, agentName, onClose }: LiveRunViewProps) {
   const [run, setRun] = useState<RunStatus | null>(null)
   const [elapsed, setElapsed] = useState(0)
   const [done, setDone] = useState(false)
@@ -48,19 +49,14 @@ export function LiveRunView({ runId, agentName, onClose }: LiveRunViewProps) {
 
     async function stream() {
       try {
-        const res = await fetch(`/api/agents/${runId.split("-")[0]}/runs?runId=${runId}`, {
-          signal: controller.signal,
-        })
-        if (!res.ok) return
-
-        // Fall back to polling since Next.js API routes can't easily proxy SSE
+        // Poll the agent's runs endpoint every 2s to get live status
         const pollInterval = setInterval(async () => {
+          if (controller.signal.aborted) { clearInterval(pollInterval); return }
           try {
-            // Use the bridge run endpoint via proxy
-            const r = await fetch(`/api/agents/_/runs?runId=${runId}`)
+            const r = await fetch(`/api/agents/${agentId}/runs?limit=20`)
             if (r.ok) {
               const data = await r.json()
-              const latestRun = data.runs?.find((run: RunStatus) => run.id === runId)
+              const latestRun = (data.runs || []).find((run: RunStatus) => run.id === runId)
               if (latestRun) {
                 setRun(latestRun)
                 const terminal = ["succeeded", "failed", "cancelled", "timed_out"]

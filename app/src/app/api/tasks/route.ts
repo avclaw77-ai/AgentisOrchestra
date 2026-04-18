@@ -66,21 +66,23 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Auto-generate ID: TASK-001, TASK-002, etc. (atomic via DB count + timestamp fallback)
-  let id: string
+  // Auto-generate ID: TASK-NNN with collision retry (max 5 attempts, then timestamp fallback)
+  let id: string = `TASK-${Date.now().toString(36).toUpperCase()}`
   try {
     const countResult = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(tasks)
-    const nextNum = (countResult[0]?.count || 0) + 1
-    id = `TASK-${String(nextNum).padStart(3, "0")}`
-    // If collision, fall back to timestamp-based ID
-    const existing = await db.select({ id: tasks.id }).from(tasks).where(eq(tasks.id, id)).limit(1)
-    if (existing.length > 0) {
-      id = `TASK-${Date.now().toString(36).toUpperCase()}`
+    const baseNum = (countResult[0]?.count || 0) + 1
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate = `TASK-${String(baseNum + attempt).padStart(3, "0")}`
+      const existing = await db.select({ id: tasks.id }).from(tasks).where(eq(tasks.id, candidate)).limit(1)
+      if (existing.length === 0) {
+        id = candidate
+        break
+      }
     }
   } catch {
-    id = `TASK-${Date.now().toString(36).toUpperCase()}`
+    // fallback already set
   }
 
   const now = new Date()

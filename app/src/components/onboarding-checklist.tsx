@@ -25,7 +25,12 @@ export function OnboardingChecklist({
   onDismiss,
 }: OnboardingChecklistProps) {
   const [checkedSteps, setCheckedSteps] = useState<Record<string, boolean>>({})
-  const [dismissed, setDismissed] = useState(false)
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("ao_onboarding_dismissed") === "1"
+    }
+    return false
+  })
 
   const steps: { id: string; label: string; description: string; done: boolean; action?: string }[] = [
     {
@@ -92,13 +97,6 @@ export function OnboardingChecklist({
       setCheckedSteps(checks)
     }
     checkSteps()
-  }, [])
-
-  // Check if dismissed in localStorage
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setDismissed(localStorage.getItem("ao_onboarding_dismissed") === "1")
-    }
   }, [])
 
   const completedCount = steps.filter((s) => s.done).length

@@ -243,13 +243,28 @@ export function SearchModal({
 
   if (!open) return null
 
-  // Group results by category
-  const grouped = new Map<ResultCategory, SearchResult[]>()
-  for (const r of results) {
-    const arr = grouped.get(r.category) || []
-    arr.push(r)
-    grouped.set(r.category, arr)
-  }
+  // Group results by category and build flat index map
+  const grouped = useMemo(() => {
+    const map = new Map<ResultCategory, SearchResult[]>()
+    for (const r of results) {
+      const arr = map.get(r.category) || []
+      arr.push(r)
+      map.set(r.category, arr)
+    }
+    return map
+  }, [results])
+
+  // Pre-compute a stable id -> flat index map
+  const idToIndex = useMemo(() => {
+    const map = new Map<string, number>()
+    let idx = 0
+    for (const [, items] of grouped) {
+      for (const item of items) {
+        map.set(item.id, idx++)
+      }
+    }
+    return map
+  }, [grouped])
 
   const CATEGORY_LABELS: Record<ResultCategory, string> = {
     navigation: "Navigation",
@@ -258,8 +273,6 @@ export function SearchModal({
     goal: "Goals",
     routine: "Routines",
   }
-
-  let globalIdx = -1
 
   return (
     <div
@@ -305,8 +318,7 @@ export function SearchModal({
                   </span>
                 </div>
                 {items.map((item) => {
-                  globalIdx++
-                  const idx = globalIdx
+                  const idx = idToIndex.get(item.id) ?? 0
                   return (
                     <button
                       key={item.id}

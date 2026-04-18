@@ -71,6 +71,12 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "id and title required" }, { status: 400 })
   }
 
+  // Verify conversation exists
+  const [conv] = await db.select().from(conversations).where(eq(conversations.id, id)).limit(1)
+  if (!conv) {
+    return NextResponse.json({ error: "Conversation not found" }, { status: 404 })
+  }
+
   await db
     .update(conversations)
     .set({ title, updatedAt: new Date() })
@@ -89,7 +95,12 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "id is required" }, { status: 400 })
   }
 
-  // Cascade deletes messages via FK
+  // Verify conversation exists
+  const [conv] = await db.select().from(conversations).where(eq(conversations.id, id)).limit(1)
+  if (!conv) {
+    return NextResponse.json({ error: "Conversation not found" }, { status: 404 })
+  }
+
   await db.delete(conversations).where(eq(conversations.id, id))
 
   return NextResponse.json({ ok: true })

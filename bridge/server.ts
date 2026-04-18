@@ -224,19 +224,26 @@ app.get("/runs/:id/stream", async (req, res) => {
   const terminal = ["succeeded", "failed", "cancelled", "timed_out"]
   send("status", { run })
 
+  let errorCount = 0
   const poll = setInterval(async () => {
     if (closed) { clearInterval(poll); return }
     try {
       const latest = await db.getRunById(runId)
       if (!latest) { clearInterval(poll); res.end(); return }
+      errorCount = 0
       send("status", { run: latest })
-      if (terminal.includes(latest.status)) {
+      if (terminal.includes(latest.status as string)) {
         clearInterval(poll)
         send("done", { status: latest.status })
         res.end()
       }
     } catch {
-      // keep polling
+      errorCount++
+      if (errorCount > 10) {
+        clearInterval(poll)
+        send("error", { message: "Too many DB errors, stopping stream" })
+        res.end()
+      }
     }
   }, 2000)
 
@@ -274,7 +281,8 @@ console.error = (...args: unknown[]) => { captureLog("error", args); origError.a
 console.warn = (...args: unknown[]) => { captureLog("warn", args); origWarn.apply(console, args) }
 
 app.get("/logs", (req, res) => {
-  const limit = Math.min(parseInt(req.query.limit as string || "100", 10), 500)
+  const parsed = parseInt(req.query.limit as string || "100", 10)
+  const limit = Math.min(Number.isNaN(parsed) ? 100 : parsed, 500)
   const level = req.query.level as string || undefined
   const source = req.query.source as string || undefined
 

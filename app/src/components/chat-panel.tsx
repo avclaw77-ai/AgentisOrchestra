@@ -52,6 +52,7 @@ export function ChatPanel({ channel, agentName, agentDisplayName, departmentId, 
   const [editText, setEditText] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const pendingSendRef = useRef(false)
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort()
@@ -61,6 +62,14 @@ export function ChatPanel({ channel, agentName, agentDisplayName, departmentId, 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // Auto-send after edit/retry sets input via ref (avoids querySelector)
+  useEffect(() => {
+    if (pendingSendRef.current && input.trim() && !streaming) {
+      pendingSendRef.current = false
+      handleSend()
+    }
+  }, [input]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load chat history when channel or conversation changes
   useEffect(() => {
@@ -387,12 +396,8 @@ export function ChatPanel({ channel, agentName, agentDisplayName, departmentId, 
                         const newMessages = messages.slice(0, msgIdx)
                         setMessages(newMessages)
                         setEditingMessageId(null)
+                        pendingSendRef.current = true
                         setInput(editText.trim())
-                        // Auto-send after state update
-                        setTimeout(() => {
-                          const sendBtn = document.querySelector("[data-send-btn]") as HTMLButtonElement
-                          sendBtn?.click()
-                        }, 50)
                       }}
                       className="px-2.5 py-1 text-xs rounded-lg bg-primary text-primary-foreground"
                     >
@@ -433,11 +438,8 @@ export function ChatPanel({ channel, agentName, agentDisplayName, departmentId, 
                           // Retry: remove this message + its response, resend
                           const newMessages = messages.slice(0, msgIdx)
                           setMessages(newMessages)
+                          pendingSendRef.current = true
                           setInput(msg.blocks[0]?.content || "")
-                          setTimeout(() => {
-                            const sendBtn = document.querySelector("[data-send-btn]") as HTMLButtonElement
-                            sendBtn?.click()
-                          }, 50)
                         }}
                         className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
                         title="Retry message"

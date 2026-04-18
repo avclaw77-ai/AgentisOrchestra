@@ -46,6 +46,16 @@ export async function POST(
     )
   }
 
+  // Size limit: 10MB max
+  const MAX_SIZE = 10 * 1024 * 1024
+  const estimatedSize = Math.ceil((content.length * 3) / 4) // base64 -> bytes
+  if (estimatedSize > MAX_SIZE) {
+    return NextResponse.json(
+      { error: "File too large. Maximum size is 10MB." },
+      { status: 413 }
+    )
+  }
+
   // Verify task exists
   const [task] = await db.select().from(tasks).where(eq(tasks.id, id))
   if (!task) {
